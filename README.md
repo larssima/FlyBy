@@ -2,7 +2,7 @@
 
 A single-file, browser-based ADS-B radar that shows live aircraft on a green sweeping radar display — no build tools, no dependencies to install.
 
-![FlyBy radar screenshot](https://github.com/larssima/FlyBy/raw/master/screenshot.png)
+![FlyBy radar screenshot](https://github.com/larssima/FlyBy/raw/master/Screenshot.png)
 
 ---
 
