@@ -36,7 +36,14 @@ A single-file, browser-based ADS-B radar that shows live aircraft on a green swe
 Because the ADS-B APIs reject requests from `file://` origins (CORS), you must serve the file over HTTP — even locally.
 
 ```bash
+# Node.js
 npx serve .
+
+# Python 3
+python -m http.server 3000
+
+# Python 2
+python -m SimpleHTTPServer 3000
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
