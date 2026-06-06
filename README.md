@@ -1,0 +1,83 @@
+# FlyBy
+
+A single-file, browser-based ADS-B radar that shows live aircraft on a green sweeping radar display — no build tools, no dependencies to install.
+
+![FlyBy radar screenshot](https://github.com/larssima/FlyBy/raw/master/screenshot.png)
+
+---
+
+## What it does
+
+- Plots real aircraft around your current GPS location on a circular radar sweep
+- Aircraft blips appear as the sweep passes over them and fade as they age
+- Short trail dots show recent movement; a heading vector points in the direction of travel
+- Clicking a blip opens a detail panel with callsign, aircraft type, manufacturer, registration, operator, and the full origin → destination route
+- Live telemetry (altitude, speed, vertical rate, distance, bearing) updates every second while a flight is selected
+
+---
+
+## Features
+
+| Feature | Details |
+|---|---|
+| **Live radar** | Sweeps every 8 seconds; aircraft data refreshed from ADS-B APIs every 10 s |
+| **Range selector** | 10 km / 50 km / 100 km — switches range and re-fetches immediately |
+| **MAP mode** | Toggle an OpenStreetMap background behind the radar (via Leaflet) |
+| **Auto mode** | Automatically cycles through visible flights on screen — great for a wall-mounted display |
+| **Auto interval** | Configurable: click the interval button to cycle through 10 s / 15 s / 30 s / 60 s / 2 m / 5 m |
+| **Flight details** | Route (origin/destination airports with IATA + ICAO codes), airline, aircraft DB lookup |
+| **Google Maps link** | Click the center coordinates to open your radar center in Google Maps |
+| **Countdown display** | AUTO button shows remaining seconds before next aircraft is selected |
+
+---
+
+## Running it
+
+Because the ADS-B APIs reject requests from `file://` origins (CORS), you must serve the file over HTTP — even locally.
+
+```bash
+npx serve .
+```
+
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
+
+> **Raspberry Pi / kiosk:** Run `npx serve .` on boot and open Chromium in kiosk mode pointing at `http://localhost:3000`. Enable AUTO mode and it will cycle through flights hands-free.
+
+---
+
+## Data sources
+
+Aircraft position data is fetched from these ADS-B aggregators (tried in order, first to respond wins):
+
+1. [airplanes.live](https://airplanes.live)
+2. [adsb.lol](https://adsb.lol)
+3. [adsb.fi](https://adsb.fi)
+
+Flight details (aircraft database + route) come from [adsbdb.com](https://adsbdb.com).
+
+All sources are free and open — no API keys required.
+
+---
+
+## Configuration
+
+Open `index.html` and adjust these constants near the top of the script:
+
+| Constant | Default | Description |
+|---|---|---|
+| `RADIUS_KM` | `100` | Initial radar range in km |
+| `SWEEP_SPEED` | `2π / 8` | One full rotation every 8 seconds |
+| `FETCH_EVERY` | `10000` | API poll interval in milliseconds |
+| `STALE_HIDE` | `20` | Hide aircraft not heard for this many seconds |
+| `AUTO_INTERVALS` | `[10,15,30,60,120,300]` | Available auto-cycle intervals (seconds) |
+
+---
+
+## Project structure
+
+```
+FlyBy/
+└── index.html   # Entire application — HTML, CSS, and JavaScript in one file
+```
+
+No framework, no bundler, no package.json. Drop it on any static file server and it works.
