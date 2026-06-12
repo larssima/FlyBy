@@ -562,6 +562,9 @@ function updateAutoBtn() {
   if (rem > 0) setTimeout(updateAutoBtn, 500);
 }
 
+const AUTO_HISTORY_SIZE = 10;
+const autoHistory = []; // recently auto-selected icao24s, most recent first
+
 function pickAutoAircraft() {
   if (!autoMode) return;
   const visible = aircraft.filter(ac => {
@@ -569,8 +572,14 @@ function pickAutoAircraft() {
     return isFinite(pos.x) && isFinite(pos.y) && Math.hypot(pos.x - cx, pos.y - cy) <= R - 2;
   });
   if (visible.length === 0) { scheduleAutoNext(); return; }
-  const pool = visible.filter(ac => ac.icao24 !== selectedIcao);
-  const pick = (pool.length ? pool : visible)[Math.floor(Math.random() * (pool.length || visible.length))];
+
+  let pool = visible.filter(ac => !autoHistory.includes(ac.icao24));
+  if (pool.length === 0) pool = visible.filter(ac => ac.icao24 !== selectedIcao);
+  if (pool.length === 0) pool = visible;
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  autoHistory.unshift(pick.icao24);
+  if (autoHistory.length > AUTO_HISTORY_SIZE) autoHistory.pop();
   selectAircraft(pick.icao24);
 }
 
