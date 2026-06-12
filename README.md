@@ -8,7 +8,7 @@ A single-file, browser-based ADS-B radar that shows live aircraft on a green swe
 
 ## What it does
 
-- Plots real aircraft around your current GPS location on a circular radar sweep
+- Plots real aircraft around your current location on a circular radar sweep — auto-detected via the browser's GPS, falling back to your network's approximate location
 - Aircraft blips appear as the sweep passes over them and fade as they age
 - Short trail dots show recent movement; a heading vector points in the direction of travel
 - Clicking a blip opens a detail panel with callsign, aircraft type, manufacturer, registration, operator, and the full origin → destination route
@@ -63,6 +63,21 @@ Aircraft position data is fetched from these ADS-B aggregators (tried in order, 
 Flight details (aircraft database + route) come from [adsbdb.com](https://adsbdb.com).
 
 All sources are free and open — no API keys required.
+
+---
+
+## Setting the radar location
+
+By default, FlyBy centers on your current location:
+
+1. **Browser GPS** — prompts for location permission on first load
+2. **IP geolocation** ([ipapi.co](https://ipapi.co)) — used if GPS is denied or unavailable
+3. **London** — final fallback if both fail
+
+To pin a specific location (e.g. for a wall-mounted display):
+
+- Click the **SET** button next to the coordinates, then paste a Google Maps link (`.../@59.33,18.07,12z` or `?q=59.33,18.07`) or plain `lat,lon` coordinates. This is saved in the browser (`localStorage`) and used on every future load. Leave the prompt empty to clear it and go back to auto-detection.
+- Or append `?lat=59.33&lon=18.07` to the URL — useful for bookmarking a fixed kiosk location. This takes priority over the saved location.
 
 ---
 

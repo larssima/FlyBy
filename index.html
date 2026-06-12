@@ -41,15 +41,31 @@
       text-shadow: 0 0 12px #00ff41, 0 0 24px #00ff4166;
     }
 
+    #location-row {
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
     #location-display {
       font-size: 10px;
       opacity: 0.5;
       letter-spacing: 2px;
-      margin-top: 4px;
       cursor: pointer;
       text-decoration: underline dotted rgba(0,255,65,0.4);
     }
     #location-display:hover { opacity: 0.85; }
+
+    #set-location {
+      font-size: 9px;
+      letter-spacing: 1px;
+      opacity: 0.35;
+      cursor: pointer;
+      border: 1px solid rgba(0,255,65,0.3);
+      padding: 1px 5px;
+    }
+    #set-location:hover { opacity: 0.85; border-color: #00ff41; color: #00ff41; }
 
     #radar-wrap { position: relative; display: inline-block; line-height: 0; }
     #map-bg     { position: absolute; top: 0; left: 0; border-radius: 50%; overflow: hidden; display: none; z-index: 0; }
@@ -217,7 +233,10 @@
   <div id="radar-col">
     <div id="header">
       <h1>FlyBy</h1>
-      <div id="location-display">INITIALIZING…</div>
+      <div id="location-row">
+        <span id="location-display">INITIALIZING…</span>
+        <span id="set-location" title="Set custom location">SET</span>
+      </div>
     </div>
 
     <div id="radar-wrap">
@@ -1067,15 +1086,93 @@ document.getElementById('location-display').addEventListener('click', () => {
   window.open(`https://maps.google.com/maps?q=${center.lat},${center.lon}&z=${zoom}`, '_blank');
 });
 
+// ─── Custom location ──────────────────────────────────────────────────────────
+// Accepts a pasted Google Maps URL (.../@lat,lon,... or ?q=lat,lon) or plain "lat,lon"
+function parseLatLon(input) {
+  const s = (input || '').trim();
+  const patterns = [
+    /@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/,
+    /[?&]q=(-?\d{1,3}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)/,
+    /^(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)$/,
+  ];
+  for (const re of patterns) {
+    const m = s.match(re);
+    if (m) {
+      const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        return { lat, lon };
+      }
+    }
+  }
+  return null;
+}
+
+function applyCenter(lat, lon) {
+  center.lat = lat; center.lon = lon;
+  document.getElementById('location-display').textContent =
+    `CENTER ${center.lat.toFixed(3)}° ${center.lon.toFixed(3)}° · RANGE ${RADIUS_KM}KM`;
+  aircraft = [];
+  blips.clear();
+  prevPositions.clear();
+  selectedIcao = null; renderPanel(null, null, false);
+  lastFetch = 0;
+  if (leafletMap) leafletMap.setView([center.lat, center.lon], mapZoom());
+}
+
+document.getElementById('set-location').addEventListener('click', e => {
+  e.stopPropagation();
+  const current = `${center.lat.toFixed(5)},${center.lon.toFixed(5)}`;
+  const input = prompt(
+    'Paste a Google Maps link (or "lat,lon") to set the radar center.\n' +
+    'Leave empty and confirm to clear and use auto-detected location.',
+    current
+  );
+  if (input === null) return;
+  if (input.trim() === '') {
+    localStorage.removeItem('flyby-location');
+    location.reload();
+    return;
+  }
+  const coords = parseLatLon(input);
+  if (!coords) { alert('Could not find coordinates in that input.'); return; }
+  localStorage.setItem('flyby-location', JSON.stringify(coords));
+  applyCenter(coords.lat, coords.lon);
+});
+
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
   document.getElementById('location-display').textContent = 'ACQUIRING LOCATION…';
-  try {
-    const pos = await new Promise((res,rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }));
-    center.lat = pos.coords.latitude;
-    center.lon = pos.coords.longitude;
-  } catch { /* keep default */ }
+
+  // Priority: ?lat=&lon= URL override > saved custom location > browser geolocation > IP geolocation > default
+  const params    = new URLSearchParams(location.search);
+  const urlCoords = parseLatLon(`${params.get('lat')},${params.get('lon')}`);
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('flyby-location')); } catch { /* ignore */ }
+
+  if (urlCoords) {
+    center.lat = urlCoords.lat; center.lon = urlCoords.lon;
+  } else if (saved && isFinite(saved.lat) && isFinite(saved.lon)) {
+    center.lat = saved.lat; center.lon = saved.lon;
+  } else {
+    let located = false;
+    try {
+      const pos = await new Promise((res,rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }));
+      center.lat = pos.coords.latitude;
+      center.lon = pos.coords.longitude;
+      located = true;
+    } catch { /* fall through to IP geolocation */ }
+
+    if (!located) {
+      try {
+        const ip = await tryFetch('https://ipapi.co/json/', 5000);
+        if (isFinite(ip.latitude) && isFinite(ip.longitude)) {
+          center.lat = ip.latitude; center.lon = ip.longitude;
+        }
+      } catch { /* keep default London */ }
+    }
+  }
+
   document.getElementById('location-display').textContent =
     `CENTER ${center.lat.toFixed(3)}° ${center.lon.toFixed(3)}° · RANGE ${RADIUS_KM}KM`;
 
