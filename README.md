@@ -76,7 +76,7 @@ By default, FlyBy centers on your current location:
 
 To pin a specific location (e.g. for a wall-mounted display):
 
-- Click the **SET** button next to the coordinates, then paste a Google Maps link (`.../@59.33,18.07,12z` or `?q=59.33,18.07`) or plain `lat,lon` coordinates. This is saved in the browser (`localStorage`) and used on every future load. Leave the prompt empty to clear it and go back to auto-detection.
+- Click the **SET** button next to the coordinates to open a map picker (OpenStreetMap via Leaflet, no API key needed). Click anywhere on the map or drag the pin, then **CONFIRM**. This is saved in the browser (`localStorage`) and used on every future load. Click **AUTO-DETECT** to clear it and go back to automatic location detection.
 - Or append `?lat=59.33&lon=18.07` to the URL — useful for bookmarking a fixed kiosk location. This takes priority over the saved location.
 
 ---

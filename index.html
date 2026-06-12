@@ -67,6 +67,53 @@
     }
     #set-location:hover { opacity: 0.85; border-color: #00ff41; color: #00ff41; }
 
+    /* ── Location picker modal ── */
+    #location-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    #location-modal.show { display: flex; }
+    .modal-box {
+      background: #050505;
+      border: 1px solid rgba(0,255,65,0.4);
+      box-shadow: 0 0 24px rgba(0,255,65,0.2);
+      padding: 16px;
+      width: 480px;
+      max-width: 92vw;
+    }
+    .modal-title {
+      font-family: 'Courier New', monospace;
+      font-size: 13px; letter-spacing: 3px; color: #00ff41;
+      text-shadow: 0 0 8px #00ff41;
+      margin-bottom: 4px;
+    }
+    .modal-hint {
+      font-family: 'Courier New', monospace;
+      font-size: 9px; letter-spacing: 1px; opacity: 0.5;
+      margin-bottom: 10px;
+    }
+    #location-picker-map {
+      width: 100%; height: 320px;
+      border: 1px solid rgba(0,255,65,0.25);
+    }
+    .modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .modal-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid rgba(0,255,65,0.4);
+      color: rgba(0,255,65,0.6);
+      font-family: 'Courier New', monospace;
+      font-size: 11px; letter-spacing: 2px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .modal-btn:hover    { border-color:#00ff41; color:#00ff41; box-shadow:0 0 8px rgba(0,255,65,.3); }
+    .modal-btn-primary  { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); }
+
     #radar-wrap { position: relative; display: inline-block; line-height: 0; }
     #map-bg     { position: absolute; top: 0; left: 0; border-radius: 50%; overflow: hidden; display: none; z-index: 0; }
     canvas      { display: block; cursor: crosshair; position: relative; z-index: 1; }
@@ -273,6 +320,19 @@
   </div>
 
 </div>
+
+<div id="location-modal">
+  <div class="modal-box">
+    <div class="modal-title">SET RADAR LOCATION</div>
+    <div class="modal-hint">CLICK THE MAP OR DRAG THE PIN TO CHOOSE A CENTER</div>
+    <div id="location-picker-map"></div>
+    <div class="modal-actions">
+      <button id="loc-cancel"  class="modal-btn">CANCEL</button>
+      <button id="loc-reset"   class="modal-btn">AUTO-DETECT</button>
+      <button id="loc-confirm" class="modal-btn modal-btn-primary">CONFIRM</button>
+    </div>
+  </div>
+</div>
 <script>
 // ─── Canvas setup ─────────────────────────────────────────────────────────────
 const canvas = document.getElementById('radar');
@@ -423,9 +483,11 @@ function mapZoom() {
   return isFinite(z) ? Math.min(Math.max(z, 1), 18) : 10;
 }
 
-async function initMap() {
-  if (leafletMap) return;
-  await new Promise((res, rej) => {
+let leafletLoading = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (leafletLoading) return leafletLoading;
+  leafletLoading = new Promise((res, rej) => {
     const lnk = Object.assign(document.createElement('link'),
       { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' });
     document.head.appendChild(lnk);
@@ -433,6 +495,12 @@ async function initMap() {
       { src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', onload: res, onerror: rej });
     document.head.appendChild(scr);
   });
+  return leafletLoading;
+}
+
+async function initMap() {
+  if (leafletMap) return;
+  await loadLeaflet();
   const el = document.getElementById('map-bg');
   el.style.width = el.style.height = SIZE + 'px';
   leafletMap = L.map('map-bg', {
@@ -1119,24 +1187,53 @@ function applyCenter(lat, lon) {
   if (leafletMap) leafletMap.setView([center.lat, center.lon], mapZoom());
 }
 
+// ─── Location picker modal (Leaflet) ─────────────────────────────────────────
+let pickerMap    = null;
+let pickerMarker = null;
+
+async function openLocationPicker() {
+  document.getElementById('location-modal').classList.add('show');
+  await loadLeaflet();
+
+  if (!pickerMap) {
+    pickerMap = L.map('location-picker-map', { center: [center.lat, center.lon], zoom: 9 });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '© OpenStreetMap contributors',
+    }).addTo(pickerMap);
+    pickerMarker = L.marker([center.lat, center.lon], { draggable: true }).addTo(pickerMap);
+    pickerMap.on('click', e => pickerMarker.setLatLng(e.latlng));
+  } else {
+    pickerMap.setView([center.lat, center.lon], 9);
+    pickerMarker.setLatLng([center.lat, center.lon]);
+  }
+  setTimeout(() => pickerMap.invalidateSize(), 50);
+}
+
+function closeLocationPicker() {
+  document.getElementById('location-modal').classList.remove('show');
+}
+
+function confirmLocationPicker() {
+  const { lat, lng } = pickerMarker.getLatLng();
+  localStorage.setItem('flyby-location', JSON.stringify({ lat, lon: lng }));
+  applyCenter(lat, lng);
+  closeLocationPicker();
+}
+
+function resetLocationPicker() {
+  localStorage.removeItem('flyby-location');
+  location.reload();
+}
+
 document.getElementById('set-location').addEventListener('click', e => {
   e.stopPropagation();
-  const current = `${center.lat.toFixed(5)},${center.lon.toFixed(5)}`;
-  const input = prompt(
-    'Paste a Google Maps link (or "lat,lon") to set the radar center.\n' +
-    'Leave empty and confirm to clear and use auto-detected location.',
-    current
-  );
-  if (input === null) return;
-  if (input.trim() === '') {
-    localStorage.removeItem('flyby-location');
-    location.reload();
-    return;
-  }
-  const coords = parseLatLon(input);
-  if (!coords) { alert('Could not find coordinates in that input.'); return; }
-  localStorage.setItem('flyby-location', JSON.stringify(coords));
-  applyCenter(coords.lat, coords.lon);
+  openLocationPicker();
+});
+document.getElementById('loc-cancel').addEventListener('click', closeLocationPicker);
+document.getElementById('loc-confirm').addEventListener('click', confirmLocationPicker);
+document.getElementById('loc-reset').addEventListener('click', resetLocationPicker);
+document.getElementById('location-modal').addEventListener('click', e => {
+  if (e.target.id === 'location-modal') closeLocationPicker();
 });
 
 // ─── Init ────────────────────────────────────────────────────────────────────
