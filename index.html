@@ -149,6 +149,22 @@
     .apt-btn:hover  { border-color:#00c8ff; color:#00c8ff; box-shadow:0 0 8px rgba(0,200,255,.3); }
     .apt-btn.active { border-color:#00c8ff; color:#00c8ff; background:rgba(0,200,255,.08); box-shadow:0 0 12px rgba(0,200,255,.4); }
 
+    #apt-tooltip {
+      display: none;
+      position: fixed;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(0,200,255,0.5);
+      color: #00c8ff;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 4px 8px;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 999;
+      line-height: 1.6;
+    }
+
     #range-buttons { display: flex; gap: 8px; }
 
     .range-btn {
@@ -348,6 +364,9 @@
     </div>
   </div>
 </div>
+
+<div id="apt-tooltip"></div>
+
 <script>
 // ─── Canvas setup ─────────────────────────────────────────────────────────────
 const canvas = document.getElementById('radar');
@@ -716,7 +735,7 @@ function drawAirports() {
     ctx.moveTo(x - r - 3, y); ctx.lineTo(x + r + 3, y);
     ctx.moveTo(x, y - r - 3); ctx.lineTo(x, y + r + 3);
     ctx.stroke();
-    const label = ap.iata || ap.name || ap.icao;
+    const label = ap.iata || ap.icao;
     if (label) {
       ctx.font = '9px Courier New';
       ctx.fillText(label, x + r + 5, y + 3);
@@ -1209,6 +1228,29 @@ canvas.addEventListener('click', e => {
   if (nearest) selectAircraft(nearest);
   else { selectedIcao = null; renderPanel(null, null, false); }
 });
+
+// ─── Airport tooltip on hover ─────────────────────────────────────────────────
+const aptTooltip = document.getElementById('apt-tooltip');
+canvas.addEventListener('mousemove', e => {
+  if (!showAirports || airports.length === 0) { aptTooltip.style.display = 'none'; return; }
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  let hit = null;
+  for (const ap of airports) {
+    const pos = latLonToXY(ap.lat, ap.lon);
+    if (isFinite(pos.x) && Math.hypot(mx - pos.x, my - pos.y) < 12) { hit = ap; break; }
+  }
+  if (hit) {
+    const code = [hit.iata, hit.icao].filter(Boolean).join(' / ');
+    aptTooltip.innerHTML = `${hit.name || code}${hit.name && code ? '<br><span style="opacity:.6">' + code + '</span>' : ''}`;
+    aptTooltip.style.display = 'block';
+    aptTooltip.style.left = (e.clientX + 14) + 'px';
+    aptTooltip.style.top  = (e.clientY - 10) + 'px';
+  } else {
+    aptTooltip.style.display = 'none';
+  }
+});
+canvas.addEventListener('mouseleave', () => { aptTooltip.style.display = 'none'; });
 
 // ─── Range buttons ───────────────────────────────────────────────────────────
 document.querySelectorAll('.range-btn').forEach(btn => {
