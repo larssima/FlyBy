@@ -135,6 +135,20 @@
     .auto-btn:hover  { border-color:#ffaa00; color:#ffaa00; box-shadow:0 0 8px rgba(255,170,0,.3); }
     .auto-btn.active { border-color:#ffaa00; color:#ffaa00; background:rgba(255,170,0,.08); box-shadow:0 0 12px rgba(255,170,0,.4); }
 
+    .apt-btn {
+      background: transparent;
+      border: 1px solid rgba(0,200,255,0.4);
+      color: rgba(0,200,255,0.6);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .apt-btn:hover  { border-color:#00c8ff; color:#00c8ff; box-shadow:0 0 8px rgba(0,200,255,.3); }
+    .apt-btn.active { border-color:#00c8ff; color:#00c8ff; background:rgba(0,200,255,.08); box-shadow:0 0 12px rgba(0,200,255,.4); }
+
     #range-buttons { display: flex; gap: 8px; }
 
     .range-btn {
@@ -303,6 +317,7 @@
       <button class="range-btn map-btn" id="map-toggle" style="display:none">MAP</button>
       <button class="auto-btn" id="auto-toggle">AUTO</button>
       <button class="auto-btn" id="auto-interval" title="Click to change interval">60s</button>
+      <button class="apt-btn"  id="apt-toggle">APT</button>
     </div>
 
     <div id="footer">
@@ -372,6 +387,10 @@ const STALE_HIDE = 20; // hide aircraft not heard for more than this many second
 let mapMode = false;
 let leafletMap = null;
 let tileLayer = null;
+
+let showAirports   = false;
+let airports       = [];
+let aptCacheKey    = '';
 
 // ─── Geo helpers ─────────────────────────────────────────────────────────────
 function latLonToXY(lat, lon) {
@@ -659,6 +678,57 @@ async function fetchAircraft() {
   document.getElementById('status').textContent         = '⚠ ALL SOURCES FAILED';
   document.getElementById('last-update').textContent    = 'run: npx serve . → open localhost:3000';
   document.getElementById('aircraft-count').textContent = 'AIRCRAFT: --';
+}
+
+// ─── Airports (Overpass / OpenStreetMap) ──────────────────────────────────────
+async function fetchAirports() {
+  const key = `${center.lat.toFixed(3)},${center.lon.toFixed(3)},${RADIUS_KM}`;
+  if (key === aptCacheKey) return;
+  aptCacheKey = key;
+  const r = RADIUS_KM * 1000;
+  const q = `[out:json][timeout:15];(node["aeroway"="aerodrome"](around:${r},${center.lat},${center.lon});way["aeroway"="aerodrome"](around:${r},${center.lat},${center.lon}););out center;`;
+  try {
+    const data = await tryFetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 15000);
+    airports = (data.elements || []).map(el => ({
+      lat:  el.lat  ?? el.center?.lat,
+      lon:  el.lon  ?? el.center?.lon,
+      icao: el.tags?.icao  || '',
+      iata: el.tags?.iata  || '',
+      name: el.tags?.name  || '',
+    })).filter(a => isFinite(a.lat) && isFinite(a.lon));
+  } catch (e) { console.warn('Airport fetch failed:', e.message); }
+}
+
+function drawAirports() {
+  if (!showAirports || airports.length === 0) return;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  ctx.strokeStyle = 'rgba(0,200,255,0.55)';
+  ctx.fillStyle   = 'rgba(0,200,255,0.55)';
+  ctx.lineWidth   = 1;
+  for (const ap of airports) {
+    const pos = latLonToXY(ap.lat, ap.lon);
+    if (!isFinite(pos.x) || !isFinite(pos.y)) continue;
+    if (Math.hypot(pos.x - cx, pos.y - cy) > R - 2) continue;
+    const { x, y } = pos, r = 6;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - r - 3, y); ctx.lineTo(x + r + 3, y);
+    ctx.moveTo(x, y - r - 3); ctx.lineTo(x, y + r + 3);
+    ctx.stroke();
+    const label = ap.iata || ap.icao;
+    if (label) {
+      ctx.font = '9px Courier New';
+      ctx.fillText(label, x + r + 5, y + 3);
+    }
+  }
+  ctx.restore();
+}
+
+async function toggleAirports() {
+  showAirports = !showAirports;
+  document.getElementById('apt-toggle').classList.toggle('active', showAirports);
+  if (showAirports) await fetchAirports();
 }
 
 function countPositionChanges() {
@@ -1116,7 +1186,7 @@ function frame(ts) {
   prevSweepAngle = sweepAngle;
   sweepAngle     = normalizeAngle(sweepAngle + SWEEP_SPEED * dt);
   if (Date.now() - lastFetch > FETCH_EVERY) fetchAircraft();
-  drawBase(); drawSweep(); drawBlips(ts); drawOverlay();
+  drawBase(); drawSweep(); drawBlips(ts); drawAirports(); drawOverlay();
   requestAnimationFrame(frame);
 }
 
@@ -1148,14 +1218,17 @@ document.querySelectorAll('.range-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('map-toggle').classList.toggle('active', mapMode);
     lastFetch = 0;
+    aptCacheKey = '';
     document.getElementById('location-display').textContent =
       `CENTER ${center.lat.toFixed(3)}° ${center.lon.toFixed(3)}° · RANGE ${RADIUS_KM}KM`;
     if (leafletMap) leafletMap.setZoom(mapZoom());
+    if (showAirports) fetchAirports();
   });
 });
 
 document.getElementById('auto-toggle').addEventListener('click', toggleAuto);
 document.getElementById('auto-interval').addEventListener('click', cycleAutoInterval);
+document.getElementById('apt-toggle').addEventListener('click', toggleAirports);
 
 // ─── Center → Google Maps ────────────────────────────────────────────────────
 document.getElementById('location-display').addEventListener('click', () => {
@@ -1193,6 +1266,8 @@ function applyCenter(lat, lon) {
   prevPositions.clear();
   selectedIcao = null; renderPanel(null, null, false);
   lastFetch = 0;
+  aptCacheKey = '';
+  if (showAirports) fetchAirports();
   if (leafletMap) leafletMap.setView([center.lat, center.lon], mapZoom());
 }
 
