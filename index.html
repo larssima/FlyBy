@@ -705,7 +705,7 @@ async function fetchAirports() {
   if (key === aptCacheKey) return;
   aptCacheKey = key;
   const r = RADIUS_KM * 1000;
-  const q = `[out:json][timeout:15];(node["aeroway"="aerodrome"](around:${r},${center.lat},${center.lon});way["aeroway"="aerodrome"](around:${r},${center.lat},${center.lon}););out center;`;
+  const q = `[out:json][timeout:15];(node["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon});way["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon}););out center;`;
   try {
     const data = await tryFetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 15000);
     airports = (data.elements || []).map(el => ({
