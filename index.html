@@ -719,7 +719,6 @@ async function fetchAircraft() {
 async function fetchAirports() {
   const key = `${center.lat.toFixed(3)},${center.lon.toFixed(3)},${RADIUS_KM}`;
   if (key === aptCacheKey) return;
-  aptCacheKey = key;
   const r = RADIUS_KM * 1000;
   const q = `[out:json][timeout:15];(node["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon});way["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon}););out center;`;
   try {
@@ -731,6 +730,7 @@ async function fetchAirports() {
       iata: el.tags?.iata  || '',
       name: el.tags?.name  || '',
     })).filter(a => isFinite(a.lat) && isFinite(a.lon));
+    aptCacheKey = key; // only cache after a successful fetch so failures can be retried
   } catch (e) { console.warn('Airport fetch failed:', e.message); }
 }
 
@@ -761,9 +761,14 @@ function drawAirports() {
 }
 
 async function toggleAirports() {
+  const btn = document.getElementById('apt-toggle');
   showAirports = !showAirports;
-  document.getElementById('apt-toggle').classList.toggle('active', showAirports);
-  if (showAirports) await fetchAirports();
+  btn.classList.toggle('active', showAirports);
+  if (showAirports) {
+    btn.textContent = 'APT…';
+    try { await fetchAirports(); } catch { /* already logged */ } finally { btn.textContent = 'APT'; }
+    if (airports.length === 0) { showAirports = false; btn.classList.remove('active'); }
+  }
 }
 
 function countPositionChanges() {
