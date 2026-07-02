@@ -181,6 +181,20 @@
     .range-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 8px rgba(0,255,65,.3); }
     .range-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 12px rgba(0,255,65,.4); }
 
+    .lbl-btn {
+      background: transparent;
+      border: 1px solid rgba(0,255,65,0.4);
+      color: rgba(0,255,65,0.6);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .lbl-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 8px rgba(0,255,65,.3); }
+    .lbl-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 12px rgba(0,255,65,.4); }
+
     #footer { display:flex; gap:24px; font-size:10px; letter-spacing:2px; opacity:.8; }
 
     #file-warning {
@@ -334,7 +348,7 @@
       <button class="auto-btn" id="auto-toggle">AUTO</button>
       <button class="auto-btn" id="auto-interval" title="Click to change interval">60s</button>
       <button class="apt-btn"  id="apt-toggle">APT</button>
-      <button class="range-btn active" id="label-toggle">LBL</button>
+      <button class="lbl-btn active" id="label-toggle">LBL</button>
     </div>
 
     <div id="footer">
@@ -1270,6 +1284,7 @@ canvas.addEventListener('mouseleave', () => { aptTooltip.style.display = 'none';
 // ─── Range buttons ───────────────────────────────────────────────────────────
 document.querySelectorAll('.range-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (!btn.dataset.km) return;
     RADIUS_KM = parseInt(btn.dataset.km);
     document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
