@@ -681,7 +681,7 @@ async function fetchAircraft() {
     try {
       aircraft = parseAdsbLol(await tryFetch(url));
       logFetch(src, aircraft); setStatus('SCANNING', aircraft.length, src);
-      refreshSelected(); return;
+      refreshSelected(); prefetchVisibleDetails(); return;
     } catch (e) { console.warn(`${src} direct FAILED:`, e.message); }
   }
 
@@ -690,7 +690,7 @@ async function fetchAircraft() {
     try {
       aircraft = parseAdsbLol(await tryFetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, 12000));
       logFetch(`proxy→${src}`, aircraft); setStatus('⚠ CACHED', aircraft.length, 'proxy');
-      refreshSelected(); return;
+      refreshSelected(); prefetchVisibleDetails(); return;
     } catch (e) { console.warn(`proxy→${src} FAILED:`, e.message); }
   }
 
@@ -850,6 +850,16 @@ async function fetchFlightDetails(ac) {
 
   detailCache.set(ac.icao24, { ts: Date.now(), data: details });
   return details;
+}
+
+// Silently fetch operator/route data for all visible aircraft so colour rules
+// (e.g. Swedish Police → blue) apply without needing a manual click.
+async function prefetchVisibleDetails() {
+  for (const ac of aircraft) {
+    if (detailCache.has(ac.icao24)) continue;
+    try { await fetchFlightDetails(ac); } catch { /* ignore */ }
+    await new Promise(r => setTimeout(r, 300)); // 300 ms between requests
+  }
 }
 
 // ─── Info panel rendering ────────────────────────────────────────────────────
