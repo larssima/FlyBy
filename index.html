@@ -334,6 +334,7 @@
       <button class="auto-btn" id="auto-toggle">AUTO</button>
       <button class="auto-btn" id="auto-interval" title="Click to change interval">60s</button>
       <button class="apt-btn"  id="apt-toggle">APT</button>
+      <button class="range-btn active" id="label-toggle">LBL</button>
     </div>
 
     <div id="footer">
@@ -410,6 +411,7 @@ let tileLayer = null;
 let showAirports   = false;
 let airports       = [];
 let aptCacheKey    = '';
+let showLabels     = true;
 
 // ─── Geo helpers ─────────────────────────────────────────────────────────────
 function latLonToXY(lat, lon) {
@@ -1176,7 +1178,7 @@ function drawBlips(ts) {
     ctx.shadowColor = isSel ? '#fff' : `rgb(${col})`; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
 
     // Label
-    if (fade > 0.1) {
+    if (showLabels && fade > 0.1) {
       ctx.font      = '9px Courier New';
       ctx.fillStyle = isSel ? `rgba(255,255,255,${fade*.9})` : `rgba(${col},${fade*.85})`;
       const lbl = ac.altBaro != null
@@ -1284,6 +1286,10 @@ document.querySelectorAll('.range-btn').forEach(btn => {
 document.getElementById('auto-toggle').addEventListener('click', toggleAuto);
 document.getElementById('auto-interval').addEventListener('click', cycleAutoInterval);
 document.getElementById('apt-toggle').addEventListener('click', toggleAirports);
+document.getElementById('label-toggle').addEventListener('click', () => {
+  showLabels = !showLabels;
+  document.getElementById('label-toggle').classList.toggle('active', showLabels);
+});
 
 // ─── Center → Google Maps ────────────────────────────────────────────────────
 document.getElementById('location-display').addEventListener('click', () => {
