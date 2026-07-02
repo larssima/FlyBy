@@ -1129,7 +1129,10 @@ function drawBlips(ts) {
       }
     }
 
-    const col  = isSel ? '255,255,255' : seenColor(ac.seen);
+    const operator = detailCache.get(ac.icao24)?.data?.aircraft?.registered_owner || '';
+    const col  = isSel ? '255,255,255'
+               : /swedish police/i.test(operator) ? '74,158,255'
+               : seenColor(ac.seen);
 
     // Position trail — dots at previous sweep positions showing actual movement
     for (let i = 0; i < blip.trail.length; i++) {
