@@ -341,9 +341,7 @@
     </div>
 
     <div id="range-buttons">
-      <button class="range-btn" data-km="10">10 KM</button>
-      <button class="range-btn" data-km="50">50 KM</button>
-      <button class="range-btn active" data-km="100">100 KM</button>
+      <button class="range-btn active" id="range-cycle">100 KM</button>
       <button class="range-btn map-btn" id="map-toggle" style="display:none">MAP</button>
       <button class="auto-btn" id="auto-toggle">AUTO</button>
       <button class="auto-btn" id="auto-interval" title="Click to change interval">60s</button>
@@ -387,7 +385,9 @@
 const canvas = document.getElementById('radar');
 const ctx    = canvas.getContext('2d');
 
-let RADIUS_KM     = 100;
+const RANGE_VALUES = [10, 50, 100];
+let   rangeIdx     = 2;          // index into RANGE_VALUES; default 100 km
+let   RADIUS_KM    = RANGE_VALUES[rangeIdx];
 const SWEEP_SPEED = (2 * Math.PI) / 8;
 const GREEN       = '#00ff41';
 const FETCH_EVERY = 10000;
@@ -1286,22 +1286,19 @@ canvas.addEventListener('mousemove', e => {
 });
 canvas.addEventListener('mouseleave', () => { aptTooltip.style.display = 'none'; });
 
-// ─── Range buttons ───────────────────────────────────────────────────────────
-document.querySelectorAll('.range-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (!btn.dataset.km) return;
-    RADIUS_KM = parseInt(btn.dataset.km);
-    document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('map-toggle').classList.toggle('active', mapMode);
-    lastFetch = 0;
-    aptCacheKey = '';
-    document.getElementById('location-display').textContent =
-      `CENTER ${center.lat.toFixed(3)}° ${center.lon.toFixed(3)}° · RANGE ${RADIUS_KM}KM`;
-    if (leafletMap) leafletMap.setZoom(mapZoom());
-    if (showAirports) fetchAirports();
-  });
-});
+// ─── Range cycle button ───────────────────────────────────────────────────────
+function cycleRange() {
+  rangeIdx  = (rangeIdx + 1) % RANGE_VALUES.length;
+  RADIUS_KM = RANGE_VALUES[rangeIdx];
+  document.getElementById('range-cycle').textContent = `${RADIUS_KM} KM`;
+  lastFetch   = 0;
+  aptCacheKey = '';
+  document.getElementById('location-display').textContent =
+    `CENTER ${center.lat.toFixed(3)}° ${center.lon.toFixed(3)}° · RANGE ${RADIUS_KM}KM`;
+  if (leafletMap) leafletMap.setZoom(mapZoom());
+  if (showAirports) fetchAirports();
+}
+document.getElementById('range-cycle').addEventListener('click', cycleRange);
 
 document.getElementById('auto-toggle').addEventListener('click', toggleAuto);
 document.getElementById('auto-interval').addEventListener('click', cycleAutoInterval);
