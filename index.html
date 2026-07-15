@@ -766,8 +766,17 @@ async function toggleAirports() {
   btn.classList.toggle('active', showAirports);
   if (showAirports) {
     btn.textContent = 'APT…';
-    try { await fetchAirports(); } catch { /* already logged */ } finally { btn.textContent = 'APT'; }
-    if (airports.length === 0) { showAirports = false; btn.classList.remove('active'); }
+    try {
+      await fetchAirports();
+    } catch {
+      // Network/timeout failure — revert so user can retry
+      showAirports = false;
+      btn.classList.remove('active');
+    } finally {
+      btn.textContent = 'APT';
+    }
+    // No auto-disable on empty results: zero airports in range is valid,
+    // not an error — the button stays on and markers just won't appear.
   }
 }
 
