@@ -697,7 +697,7 @@ async function fetchAircraft() {
     try {
       aircraft = parseAdsbLol(await tryFetch(url));
       logFetch(src, aircraft); setStatus('SCANNING', aircraft.length, src);
-      refreshSelected(); prefetchVisibleDetails(); return;
+      refreshSelected(); prefetchVisibleDetails(); pushAircraftState(); return;
     } catch (e) { console.warn(`${src} direct FAILED:`, e.message); }
   }
 
@@ -706,7 +706,7 @@ async function fetchAircraft() {
     try {
       aircraft = parseAdsbLol(await tryFetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, 12000));
       logFetch(`proxy→${src}`, aircraft); setStatus('⚠ CACHED', aircraft.length, 'proxy');
-      refreshSelected(); prefetchVisibleDetails(); return;
+      refreshSelected(); prefetchVisibleDetails(); pushAircraftState(); return;
     } catch (e) { console.warn(`proxy→${src} FAILED:`, e.message); }
   }
 
@@ -1451,7 +1451,45 @@ async function init() {
   }
 
   await fetchAircraft();
+  setInterval(pollRemote, 2000);
   requestAnimationFrame(frame);
+}
+
+// ─── Remote control (server.py) ───────────────────────────────────────────────
+// Silently no-ops when not running under server.py (Netlify, file://, etc.)
+
+function pushAircraftState() {
+  fetch('/api/aircraft', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      center,
+      range:  RADIUS_KM,
+      auto:   autoMode,
+      aircraft: aircraft.map(ac => ({
+        icao24:      ac.icao24,
+        callsign:    ac.callsign,
+        lat:         ac.lat,
+        lon:         ac.lon,
+        altBaro:     ac.altBaro,
+        groundSpeed: ac.groundSpeed,
+        operator:    detailCache.get(ac.icao24)?.data?.aircraft?.registered_owner || ''
+      }))
+    })
+  }).catch(() => {});
+}
+
+async function pollRemote() {
+  try {
+    const cmd = await tryFetch('/api/cmd', 3000);
+    if (!cmd?.action) return;
+    if      (cmd.action === 'selectAircraft' && cmd.icao) selectAircraft(cmd.icao);
+    else if (cmd.action === 'toggleAuto')                 toggleAuto();
+    else if (cmd.action === 'cycleRange')                 cycleRange();
+    else if (cmd.action === 'toggleAirports')             toggleAirports();
+    else if (cmd.action === 'toggleLabels')               document.getElementById('label-toggle').click();
+    else if (cmd.action === 'cycleAutoInterval')          cycleAutoInterval();
+  } catch { /* no server running — expected on Netlify / file:// */ }
 }
 
 init();

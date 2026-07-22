@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>FlyBy Remote</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    body {
+      background: #060d06;
+      color: #00e060;
+      font-family: 'Courier New', Courier, monospace;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    /* ── Header ── */
+    header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #0d200d;
+    }
+    .logo {
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      color: #00ff88;
+    }
+    .logo span { color: #005522; }
+    .conn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      color: #334433;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #1a2a1a;
+      flex-shrink: 0;
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    .dot.on {
+      background: #00e060;
+      box-shadow: 0 0 6px #00e060;
+    }
+
+    /* ── Control buttons ── */
+    .controls {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 7px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #0d200d;
+    }
+    .cb {
+      background: #090f09;
+      border: 1px solid #1a2e1a;
+      border-radius: 4px;
+      color: #00c050;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      padding: 13px 2px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cb:active { background: #0d1e0d; }
+    .cb.active {
+      background: #002800;
+      border-color: #00e060;
+      color: #00ff88;
+    }
+
+    /* ── Status bar ── */
+    .statusbar {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 14px;
+      font-size: 10px;
+      color: #2d4a2d;
+      border-bottom: 1px solid #0a180a;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Aircraft list ── */
+    .list {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      padding: 11px 14px;
+      border-bottom: 1px solid #0a180a;
+      cursor: pointer;
+      gap: 10px;
+      transition: background 0.1s;
+    }
+    .row:active { background: #0b1e0b; }
+    .row.sel {
+      background: #001800;
+      border-left: 3px solid #00e060;
+      padding-left: 11px;
+    }
+    .row-main { flex: 1; min-width: 0; }
+    .row-cs {
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row-op {
+      font-size: 10px;
+      color: #3a5a3a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .row-meta {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .row-dist { font-size: 13px; color: #00e060; }
+    .row-alt  { font-size: 10px; color: #3a5a3a; margin-top: 2px; }
+
+    .empty {
+      text-align: center;
+      padding: 50px 20px;
+      color: #1a2e1a;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FLY<span>BY</span></div>
+  <div class="conn">
+    <div class="dot" id="dot"></div>
+    <span id="conn-lbl">—</span>
+  </div>
+</header>
+
+<div class="controls">
+  <button class="cb" id="b-auto"  onclick="cmd({action:'toggleAuto'})">AUTO</button>
+  <button class="cb" id="b-range" onclick="cmd({action:'cycleRange'})">—KM</button>
+  <button class="cb" id="b-intv"  onclick="cmd({action:'cycleAutoInterval'})">INTV</button>
+  <button class="cb" id="b-apt"   onclick="cmd({action:'toggleAirports'})">APT</button>
+  <button class="cb" id="b-lbl"   onclick="cmd({action:'toggleLabels'})">LBL</button>
+</div>
+
+<div class="statusbar">
+  <span id="st-range">RANGE —</span>
+  <span id="st-count">— AIRCRAFT</span>
+  <span id="st-time">—</span>
+</div>
+
+<div class="list" id="list">
+  <div class="empty">WAITING FOR RADAR…</div>
+</div>
+
+<script>
+  let state       = null;
+  let followIcao  = null; // optimistic selected ICAO
+
+  // ── Send a command to the radar ──────────────────────────────────────────────
+  async function cmd(payload) {
+    if (payload.action === 'selectAircraft') followIcao = payload.icao;
+    try {
+      await fetch('/api/cmd', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch { /* offline */ }
+    render(); // optimistic refresh
+  }
+
+  // ── Distance between two lat/lon points (km) ─────────────────────────────────
+  function km(lat1, lon1, lat2, lon2) {
+    const R = 6371, d2r = Math.PI / 180;
+    const dLat = (lat2 - lat1) * d2r;
+    const dLon = (lon2 - lon1) * d2r;
+    const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(lat1 * d2r) * Math.cos(lat2 * d2r) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function fmtDist(d) { return d < 10 ? `${d.toFixed(1)}km` : `${Math.round(d)}km`; }
+  function fmtAlt(m)  { return m != null ? `${Math.round(m)}m` : ''; }
+
+  // ── Re-render the page from current state ────────────────────────────────────
+  function render() {
+    if (!state) return;
+    const { center, aircraft = [], range, auto: autoOn } = state;
+
+    // Control button states
+    document.getElementById('b-auto').classList.toggle('active', !!autoOn);
+    document.getElementById('b-range').textContent = range != null ? `${range}KM` : '—KM';
+
+    // Status bar
+    document.getElementById('st-range').textContent  = `RANGE ${range ?? '—'}KM`;
+    document.getElementById('st-count').textContent  = `${aircraft.length} AIRCRAFT`;
+    document.getElementById('st-time').textContent   = new Date().toTimeString().slice(0, 8);
+
+    // Sort by distance from radar center
+    const ac = aircraft.map(a => ({
+      ...a,
+      dist: (center && isFinite(a.lat) && isFinite(a.lon))
+        ? km(center.lat, center.lon, a.lat, a.lon)
+        : 9999
+    })).sort((a, b) => a.dist - b.dist);
+
+    const list = document.getElementById('list');
+    if (ac.length === 0) {
+      list.innerHTML = '<div class="empty">NO AIRCRAFT IN RANGE</div>';
+      return;
+    }
+
+    list.innerHTML = ac.map(a => `
+      <div class="row${a.icao24 === followIcao ? ' sel' : ''}"
+           onclick="cmd({action:'selectAircraft',icao:'${a.icao24}'})">
+        <div class="row-main">
+          <div class="row-cs">${a.callsign || a.icao24}</div>
+          <div class="row-op">${a.operator || '—'}</div>
+        </div>
+        <div class="row-meta">
+          <div class="row-dist">${fmtDist(a.dist)}</div>
+          <div class="row-alt">${fmtAlt(a.altBaro)}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Poll the server for fresh state ──────────────────────────────────────────
+  async function poll() {
+    const dot   = document.getElementById('dot');
+    const label = document.getElementById('conn-lbl');
+    try {
+      const res = await fetch('/api/aircraft');
+      if (!res.ok) throw new Error(res.status);
+      state = await res.json();
+      dot.classList.add('on');
+      label.textContent = 'ONLINE';
+      render();
+    } catch {
+      dot.classList.remove('on');
+      label.textContent = 'OFFLINE';
+    }
+  }
+
+  poll();
+  setInterval(poll, 3000);
+</script>
+</body>
+</html>

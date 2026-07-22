@@ -81,6 +81,35 @@ To pin a specific location (e.g. for a wall-mounted display):
 
 ---
 
+## Remote control (Raspberry Pi)
+
+When FlyBy is running on a Pi connected to a display, you can control it from your phone without touching the Pi.
+
+**Instead of** `python -m http.server`, run the included server:
+
+```bash
+python server.py
+```
+
+This starts on port 8080 and serves two URLs:
+
+| URL | Purpose |
+|---|---|
+| `http://<pi-ip>:8080` | The radar — open in a browser on the display |
+| `http://<pi-ip>:8080/remote` | Remote control — open on your phone |
+
+Find your Pi's IP address with `hostname -I`.
+
+The remote control page shows:
+- **AUTO / RANGE / INTV / APT / LBL** buttons — same controls as the main display
+- **Live aircraft list** sorted by distance from the radar center — tap any row to follow that flight
+
+The radar pushes its aircraft list to the server after every fetch (every 10 s), so the remote stays current automatically.
+
+> The remote only works on your local network. The main `index.html` continues to work unchanged on Netlify or via `python -m http.server` — the server polling is silently ignored when no server is present.
+
+---
+
 ## Configuration
 
 Open `index.html` and adjust these constants near the top of the script:
