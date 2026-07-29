@@ -1225,16 +1225,20 @@ function drawBlips(ts) {
 
 function drawOverlay() {
   ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
-  ctx.strokeStyle=GREEN; ctx.lineWidth=2; ctx.shadowColor=GREEN; ctx.shadowBlur=16;
+  ctx.strokeStyle=GREEN; ctx.lineWidth=1; ctx.shadowColor=GREEN; ctx.shadowBlur=8;
   ctx.stroke(); ctx.shadowBlur=0;
 
   ctx.font='9px Courier New'; ctx.fillStyle='rgba(0,255,65,.4)';
   for (let i=1; i<=4; i++)
     ctx.fillText(`${RADIUS_KM*i/4}km`, cx+4, cy-R*i/4-3);
 
-  ctx.font='11px Courier New'; ctx.fillStyle='rgba(0,255,65,.6)'; ctx.textAlign='center';
-  ctx.fillText('N',cx,cy-R-7); ctx.fillText('S',cx,cy+R+14);
-  ctx.fillText('E',cx+R+8,cy+4); ctx.fillText('W',cx-R-8,cy+4);
+  ctx.font='11px Courier New'; ctx.textAlign='center';
+  ctx.strokeStyle='rgba(0,0,0,.8)'; ctx.lineWidth=2.5;
+  ctx.strokeText('N',cx,cy-R-14); ctx.strokeText('S',cx,cy+R+22);
+  ctx.strokeText('E',cx+R+16,cy+4); ctx.strokeText('W',cx-R-16,cy+4);
+  ctx.fillStyle='rgba(0,255,65,.6)';
+  ctx.fillText('N',cx,cy-R-14); ctx.fillText('S',cx,cy+R+22);
+  ctx.fillText('E',cx+R+16,cy+4); ctx.fillText('W',cx-R-16,cy+4);
   ctx.textAlign='left';
 
   ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2);
