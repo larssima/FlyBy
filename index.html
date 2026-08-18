@@ -488,7 +488,7 @@ async function tryFetchWithProxy(url, timeout) {
 
 // ─── Aircraft position data ───────────────────────────────────────────────────
 function parseAdsbLol(data) {
-  return (data.ac || [])
+  return (data.ac || data.aircraft || [])
     .filter(a => isFinite(a.lat) && isFinite(a.lon) && a.alt_baro !== 'ground')
     .map(a => ({
       icao24:      (a.hex    || '').trim().toUpperCase(),
