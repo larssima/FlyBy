@@ -5,3 +5,23 @@
   for = "/*"
   [headers.values]
     Permissions-Policy = "geolocation=(self)"
+
+# Server-side proxy — lets the browser call /proxy/* as same-origin
+# requests (no CORS), Netlify forwards to the real ADS-B APIs.
+[[redirects]]
+  from   = "/proxy/airplanes-live/*"
+  to     = "https://api.airplanes.live/v2/:splat"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/proxy/adsb-lol/*"
+  to     = "https://api.adsb.lol/v2/:splat"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/proxy/adsb-fi/*"
+  to     = "https://opendata.adsb.fi/api/v2/:splat"
+  status = 200
+  force  = true

@@ -685,29 +685,27 @@ async function fetchAircraft() {
   const lat4   = center.lat.toFixed(4);
   const lon4   = center.lon.toFixed(4);
 
-  // Three independent networks — tried in order
-  const SOURCES = [
+  // Netlify server-side proxy paths — same-origin requests, no CORS needed.
+  // On localhost/Pi these 404 instantly and we fall through to the direct URLs below.
+  const PROXY = [
+    [`/proxy/airplanes-live/point/${lat4}/${lon4}/${nmi}`,       'airplanes.live'],
+    [`/proxy/adsb-lol/lat/${lat4}/lon/${lon4}/dist/${nmi}`,      'adsb.lol'],
+    [`/proxy/adsb-fi/lat/${lat4}/lon/${lon4}/dist/${nmi}`,       'adsb.fi'],
+  ];
+
+  // Direct URLs — work on localhost and Pi; may CORS-block on public hosting.
+  const DIRECT = [
     [`https://api.airplanes.live/v2/point/${lat4}/${lon4}/${nmi}`,           'airplanes.live'],
     [`https://api.adsb.lol/v2/lat/${lat4}/lon/${lon4}/dist/${nmi}`,          'adsb.lol'],
     [`https://opendata.adsb.fi/api/v2/lat/${lat4}/lon/${lon4}/dist/${nmi}`,  'adsb.fi'],
   ];
 
-  // Direct — only works from localhost (file:// sends null origin, APIs reject it)
-  for (const [url, src] of SOURCES) {
+  for (const [url, src] of [...PROXY, ...DIRECT]) {
     try {
       aircraft = parseAdsbLol(await tryFetch(url));
       logFetch(src, aircraft); setStatus('SCANNING', aircraft.length, src);
       refreshSelected(); prefetchVisibleDetails(); pushAircraftState(); return;
-    } catch (e) { console.warn(`${src} direct FAILED:`, e.message); }
-  }
-
-  // Proxy fallback — data will be cached, positions won't update reliably
-  for (const [url, src] of SOURCES) {
-    try {
-      aircraft = parseAdsbLol(await tryFetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, 12000));
-      logFetch(`proxy→${src}`, aircraft); setStatus('⚠ CACHED', aircraft.length, 'proxy');
-      refreshSelected(); prefetchVisibleDetails(); pushAircraftState(); return;
-    } catch (e) { console.warn(`proxy→${src} FAILED:`, e.message); }
+    } catch (e) { console.warn(`${src} FAILED:`, e.message); }
   }
 
   document.getElementById('status').textContent         = '⚠ ALL SOURCES FAILED';
