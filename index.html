@@ -714,13 +714,31 @@ async function fetchAircraft() {
 }
 
 // ─── Airports (Overpass / OpenStreetMap) ──────────────────────────────────────
+// POST to Overpass — application/x-www-form-urlencoded is a CORS-simple type (no preflight).
+// Try Netlify same-origin proxy first; fall back to direct Overpass.
+async function fetchOverpass(query, timeout) {
+  const body = `data=${encodeURIComponent(query)}`;
+  const opts = { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
+  for (const url of ['/proxy/overpass', 'https://overpass-api.de/api/interpreter']) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout || 15000);
+    try {
+      const res = await fetch(url, { ...opts, signal: ctrl.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) { console.warn(`Overpass [${url}] failed:`, e.message); }
+    finally { clearTimeout(timer); }
+  }
+  throw new Error('All Overpass endpoints failed');
+}
+
 async function fetchAirports() {
   const key = `${center.lat.toFixed(3)},${center.lon.toFixed(3)},${RADIUS_KM}`;
   if (key === aptCacheKey) return;
   const r = RADIUS_KM * 1000;
   const q = `[out:json][timeout:15];(node["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon});way["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon}););out center;`;
   try {
-    const data = await tryFetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 15000);
+    const data = await fetchOverpass(q, 15000);
     airports = (data.elements || []).map(el => ({
       lat:  el.lat  ?? el.center?.lat,
       lon:  el.lon  ?? el.center?.lon,
@@ -1456,7 +1474,11 @@ async function init() {
   }
 
   await fetchAircraft();
-  setInterval(pollRemote, 2000);
+  // Only poll for iPhone remote commands on a local/private network server.
+  // On Netlify / other public hosts there's no command bus, so skip to avoid 404 noise.
+  const h = window.location.hostname;
+  const isLocal = h === 'localhost' || h === '127.0.0.1' || /^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(h);
+  if (isLocal) setInterval(pollRemote, 2000);
   requestAnimationFrame(frame);
 }
 
