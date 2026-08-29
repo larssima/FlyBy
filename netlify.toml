@@ -26,8 +26,3 @@
   status = 200
   force  = true
 
-[[redirects]]
-  from   = "/proxy/overpass"
-  to     = "https://overpass-api.de/api/interpreter"
-  status = 200
-  force  = true
