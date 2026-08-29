@@ -1,19 +1,25 @@
-// Netlify serverless function — proxies POST requests to Overpass API.
-// Avoids browser CORS issues: the function runs server-side, no Origin header sent.
-// Available at /.netlify/functions/overpass
+// Netlify serverless function — proxies Overpass airport queries.
+// Receives POST from the browser with a URL-encoded body (data=<query>),
+// parses out the query, then issues a plain GET to Overpass server-side.
+// Server-side GET has no CORS complications and avoids body-forwarding quirks.
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
   try {
-    const resp = await fetch('https://overpass-api.de/api/interpreter', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    event.body,
-    });
+    // Decode body (Netlify may base64-encode binary payloads)
+    const rawBody = event.isBase64Encoded
+      ? Buffer.from(event.body || '', 'base64').toString('utf8')
+      : (event.body || '');
+
+    const query = new URLSearchParams(rawBody).get('data');
+    if (!query) {
+      return { statusCode: 400, headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ error: 'Missing data parameter' }) };
+    }
+
+    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+    const resp = await fetch(url, { headers: { 'User-Agent': 'FlyBy-Radar/1.5' } });
     const text = await resp.text();
+
     return {
       statusCode: resp.status,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
