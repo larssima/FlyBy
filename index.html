@@ -719,17 +719,26 @@ async function fetchAirports() {
   if (key === aptCacheKey) return;
   const r = RADIUS_KM * 1000;
   const q = `[out:json][timeout:15];(node["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon});way["aeroway"="aerodrome"]["iata"](around:${r},${center.lat},${center.lon}););out center;`;
-  try {
-    const data = await tryFetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 15000);
-    airports = (data.elements || []).map(el => ({
-      lat:  el.lat  ?? el.center?.lat,
-      lon:  el.lon  ?? el.center?.lon,
-      icao: el.tags?.icao  || '',
-      iata: el.tags?.iata  || '',
-      name: el.tags?.name  || '',
-    })).filter(a => isFinite(a.lat) && isFinite(a.lon));
-    aptCacheKey = key; // only cache after a successful fetch so failures can be retried
-  } catch (e) { console.warn('Airport fetch failed:', e.message); }
+  const qs = `?data=${encodeURIComponent(q)}`;
+  // Try Netlify proxy first (same-origin, no CORS); falls back to direct on localhost/Pi
+  const urls = [
+    `/proxy/overpass${qs}`,
+    `https://overpass-api.de/api/interpreter${qs}`,
+  ];
+  for (const url of urls) {
+    try {
+      const data = await tryFetch(url, 15000);
+      airports = (data.elements || []).map(el => ({
+        lat:  el.lat  ?? el.center?.lat,
+        lon:  el.lon  ?? el.center?.lon,
+        icao: el.tags?.icao  || '',
+        iata: el.tags?.iata  || '',
+        name: el.tags?.name  || '',
+      })).filter(a => isFinite(a.lat) && isFinite(a.lon));
+      aptCacheKey = key;
+      return;
+    } catch (e) { console.warn(`Airport fetch failed (${url.slice(0,40)}):`, e.message); }
+  }
 }
 
 function drawAirports() {
