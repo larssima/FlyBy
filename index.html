@@ -688,14 +688,14 @@ async function fetchAircraft() {
   // Netlify server-side proxy paths — same-origin requests, no CORS needed.
   // On localhost/Pi these 404 instantly and we fall through to the direct URLs below.
   const PROXY = [
-    [`/proxy/airplanes-live/point/${lat4}/${lon4}/${nmi}`,       'airplanes.live'],
+    // [`/proxy/airplanes-live/point/${lat4}/${lon4}/${nmi}`,       'airplanes.live'],  // feeder-only (403)
     [`/proxy/adsb-lol/lat/${lat4}/lon/${lon4}/dist/${nmi}`,      'adsb.lol'],
     [`/proxy/adsb-fi/lat/${lat4}/lon/${lon4}/dist/${nmi}`,       'adsb.fi'],
   ];
 
   // Direct URLs — work on localhost and Pi; may CORS-block on public hosting.
   const DIRECT = [
-    [`https://api.airplanes.live/v2/point/${lat4}/${lon4}/${nmi}`,           'airplanes.live'],
+    // [`https://api.airplanes.live/v2/point/${lat4}/${lon4}/${nmi}`, 'airplanes.live'],  // feeder-only (403)
     [`https://api.adsb.lol/v2/lat/${lat4}/lon/${lon4}/dist/${nmi}`,          'adsb.lol'],
     [`https://opendata.adsb.fi/api/v2/lat/${lat4}/lon/${lon4}/dist/${nmi}`,  'adsb.fi'],
   ];
