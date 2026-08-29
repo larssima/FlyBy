@@ -26,3 +26,9 @@
   status = 200
   force  = true
 
+[[redirects]]
+  from   = "/proxy/adsbdb/*"
+  to     = "https://api.adsbdb.com/v0/:splat"
+  status = 200
+  force  = true
+

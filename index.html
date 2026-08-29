@@ -323,7 +323,7 @@
 
   <div id="radar-col">
     <div id="header">
-      <h1>FlyBy</h1>
+      <h1>FlyBy <sup style="font-size:0.45em;opacity:0.55;font-weight:400;letter-spacing:0">v1.5</sup></h1>
       <div id="location-row">
         <span id="location-display">INITIALIZING…</span>
         <span id="set-location" title="Set custom location">SET</span>
@@ -480,10 +480,10 @@ async function tryFetch(url, timeout) {
   } finally { clearTimeout(timer); }
 }
 
+// Kept for backward compat but no longer uses corsproxy.io (returns 403 in browsers).
+// adsbdb.com has Access-Control-Allow-Origin: * so direct fetch works fine.
 async function tryFetchWithProxy(url, timeout) {
-  try { return await tryFetch(url, timeout); } catch (e) {
-    return await tryFetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, (timeout || 9000) + 3000);
-  }
+  return await tryFetch(url, timeout);
 }
 
 // ─── Aircraft position data ───────────────────────────────────────────────────
@@ -860,20 +860,23 @@ async function fetchFlightDetails(ac) {
   const details = { aircraft: null, route: null };
 
   // Aircraft database (model, manufacturer, operator, registration)
-  try {
-    const url  = `https://api.adsbdb.com/v0/aircraft/${ac.icao24.toLowerCase()}`;
-    const data = await tryFetchWithProxy(url, 6000);
-    details.aircraft = data?.response?.aircraft || null;
-  } catch (e) { console.warn('adsbdb aircraft:', e.message); }
+  const icao = ac.icao24.toLowerCase();
+  for (const base of ['/proxy/adsbdb', 'https://api.adsbdb.com/v0']) {
+    try {
+      const data = await tryFetch(`${base}/aircraft/${icao}`, 6000);
+      if (data?.response?.aircraft) { details.aircraft = data.response.aircraft; break; }
+    } catch { /* not in DB or network error — try next */ }
+  }
 
   // Route by callsign (origin → destination with full airport names)
   const cs = (ac.callsign || '').trim();
   if (cs) {
-    try {
-      const url  = `https://api.adsbdb.com/v0/callsign/${cs}`;
-      const data = await tryFetchWithProxy(url, 6000);
-      details.route = data?.response?.flightroute || null;
-    } catch (e) { console.warn('adsbdb route:', e.message); }
+    for (const base of ['/proxy/adsbdb', 'https://api.adsbdb.com/v0']) {
+      try {
+        const data = await tryFetch(`${base}/callsign/${cs}`, 6000);
+        if (data?.response?.flightroute) { details.route = data.response.flightroute; break; }
+      } catch { /* not in DB or network error — try next */ }
+    }
   }
 
   detailCache.set(ac.icao24, { ts: Date.now(), data: details });
