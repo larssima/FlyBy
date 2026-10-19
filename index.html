@@ -35,7 +35,11 @@
       justify-content: center;
       gap: 1vh;
       min-height: 0;
+      /* Fixed to the radar's width so changing status text (e.g. a failed fetch)
+         can't resize the column and shove the radar sideways. */
+      width: var(--radar-size);
     }
+    #radar-col > * { max-width: 100%; }
 
     #header { text-align: center; text-transform: uppercase; }
 
@@ -200,7 +204,11 @@
     .lbl-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 0.667rem rgba(0,255,65,.3); }
     .lbl-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 1rem rgba(0,255,65,.4); }
 
-    #footer { display:flex; gap:2rem; font-size:0.833rem; letter-spacing:0.167rem; opacity:.8; }
+    #footer {
+      display:flex; justify-content:center; gap:2rem; font-size:0.833rem; letter-spacing:0.167rem; opacity:.8;
+      height:1.5em; line-height:1.5em; white-space:nowrap; overflow:hidden;
+    }
+    #footer > span { overflow:hidden; text-overflow:ellipsis; }
 
     #file-warning {
       display: none;
