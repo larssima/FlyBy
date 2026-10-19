@@ -7,63 +7,68 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* Everything below is sized in rem/vw/vh so the page scales itself on any
+       screen (1080p, 4K TV) without browser zoom or --force-device-scale-factor. */
+    html { font-size: clamp(14px, 1.1vw, 28px); }
+
     body {
       background: #000;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height: 100vh;
       font-family: 'Courier New', monospace;
       color: #00ff41;
       overflow: hidden;
     }
 
     #app {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 24px;
+      --radar-size: min(85vh, 55vw, calc(94vh - 9.5rem));
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 2vw;
+      height: 100vh;
+      padding: 2vh 2vw;
     }
 
     #radar-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      gap: 1vh;
+      min-height: 0;
     }
 
     #header { text-align: center; text-transform: uppercase; }
 
     #header h1 {
-      font-size: 20px;
+      font-size: 1.667rem;
       font-weight: bold;
-      letter-spacing: 10px;
-      text-shadow: 0 0 12px #00ff41, 0 0 24px #00ff4166;
+      letter-spacing: 0.833rem;
+      text-shadow: 0 0 1rem #00ff41, 0 0 2rem #00ff4166;
     }
 
     #location-row {
-      margin-top: 4px;
+      margin-top: 0.333rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 0.667rem;
     }
     #location-display {
-      font-size: 10px;
+      font-size: 0.833rem;
       opacity: 0.5;
-      letter-spacing: 2px;
+      letter-spacing: 0.167rem;
       cursor: pointer;
       text-decoration: underline dotted rgba(0,255,65,0.4);
     }
     #location-display:hover { opacity: 0.85; }
 
     #set-location {
-      font-size: 9px;
-      letter-spacing: 1px;
+      font-size: 0.75rem;
+      letter-spacing: 0.083rem;
       opacity: 0.35;
       cursor: pointer;
       border: 1px solid rgba(0,255,65,0.3);
-      padding: 1px 5px;
+      padding: 0.083rem 0.417rem;
     }
     #set-location:hover { opacity: 0.85; border-color: #00ff41; color: #00ff41; }
 
@@ -79,75 +84,75 @@
     .modal-box {
       background: #050505;
       border: 1px solid rgba(0,255,65,0.4);
-      box-shadow: 0 0 24px rgba(0,255,65,0.2);
-      padding: 16px;
-      width: 480px;
+      box-shadow: 0 0 2rem rgba(0,255,65,0.2);
+      padding: 1.333rem;
+      width: 40rem;
       max-width: 92vw;
     }
     .modal-title {
       font-family: 'Courier New', monospace;
-      font-size: 13px; letter-spacing: 3px; color: #00ff41;
-      text-shadow: 0 0 8px #00ff41;
-      margin-bottom: 4px;
+      font-size: 1.083rem; letter-spacing: 0.25rem; color: #00ff41;
+      text-shadow: 0 0 0.667rem #00ff41;
+      margin-bottom: 0.333rem;
     }
     .modal-hint {
       font-family: 'Courier New', monospace;
-      font-size: 9px; letter-spacing: 1px; opacity: 0.5;
-      margin-bottom: 10px;
+      font-size: 0.75rem; letter-spacing: 0.083rem; opacity: 0.5;
+      margin-bottom: 0.833rem;
     }
     #location-picker-map {
-      width: 100%; height: 320px;
+      width: 100%; height: 26.667rem;
       border: 1px solid rgba(0,255,65,0.25);
     }
-    .modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .modal-actions { display: flex; gap: 0.667rem; margin-top: 1rem; }
     .modal-btn {
       flex: 1;
       background: transparent;
       border: 1px solid rgba(0,255,65,0.4);
       color: rgba(0,255,65,0.6);
       font-family: 'Courier New', monospace;
-      font-size: 11px; letter-spacing: 2px;
-      padding: 6px 12px;
+      font-size: 0.917rem; letter-spacing: 0.167rem;
+      padding: 0.5rem 1rem;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .modal-btn:hover    { border-color:#00ff41; color:#00ff41; box-shadow:0 0 8px rgba(0,255,65,.3); }
+    .modal-btn:hover    { border-color:#00ff41; color:#00ff41; box-shadow:0 0 0.667rem rgba(0,255,65,.3); }
     .modal-btn-primary  { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); }
 
-    #radar-wrap { position: relative; display: inline-block; line-height: 0; }
-    #map-bg     { position: absolute; top: 0; left: 0; border-radius: 50%; overflow: hidden; display: none; z-index: 0; }
-    canvas      { display: block; cursor: crosshair; position: relative; z-index: 1; }
+    #radar-wrap { position: relative; width: var(--radar-size); aspect-ratio: 1; line-height: 0; flex-shrink: 0; }
+    #map-bg     { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; display: none; z-index: 0; }
+    canvas      { display: block; width: 100%; height: 100%; cursor: crosshair; position: relative; z-index: 1; }
 
-    .map-btn.active { border-color:#4a9eff; color:#4a9eff; background:rgba(74,158,255,.08); box-shadow:0 0 12px rgba(74,158,255,.4); }
-    .map-btn:hover  { border-color:#4a9eff; color:#4a9eff; box-shadow:0 0 8px rgba(74,158,255,.3); }
+    .map-btn.active { border-color:#4a9eff; color:#4a9eff; background:rgba(74,158,255,.08); box-shadow:0 0 1rem rgba(74,158,255,.4); }
+    .map-btn:hover  { border-color:#4a9eff; color:#4a9eff; box-shadow:0 0 0.667rem rgba(74,158,255,.3); }
 
     .auto-btn {
       background: transparent;
       border: 1px solid rgba(255,170,0,0.4);
       color: rgba(255,170,0,0.6);
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      letter-spacing: 2px;
-      padding: 4px 12px;
+      font-size: 0.917rem;
+      letter-spacing: 0.167rem;
+      padding: 0.333rem 1rem;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .auto-btn:hover  { border-color:#ffaa00; color:#ffaa00; box-shadow:0 0 8px rgba(255,170,0,.3); }
-    .auto-btn.active { border-color:#ffaa00; color:#ffaa00; background:rgba(255,170,0,.08); box-shadow:0 0 12px rgba(255,170,0,.4); }
+    .auto-btn:hover  { border-color:#ffaa00; color:#ffaa00; box-shadow:0 0 0.667rem rgba(255,170,0,.3); }
+    .auto-btn.active { border-color:#ffaa00; color:#ffaa00; background:rgba(255,170,0,.08); box-shadow:0 0 1rem rgba(255,170,0,.4); }
 
     .apt-btn {
       background: transparent;
       border: 1px solid rgba(0,200,255,0.4);
       color: rgba(0,200,255,0.6);
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      letter-spacing: 2px;
-      padding: 4px 12px;
+      font-size: 0.917rem;
+      letter-spacing: 0.167rem;
+      padding: 0.333rem 1rem;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .apt-btn:hover  { border-color:#00c8ff; color:#00c8ff; box-shadow:0 0 8px rgba(0,200,255,.3); }
-    .apt-btn.active { border-color:#00c8ff; color:#00c8ff; background:rgba(0,200,255,.08); box-shadow:0 0 12px rgba(0,200,255,.4); }
+    .apt-btn:hover  { border-color:#00c8ff; color:#00c8ff; box-shadow:0 0 0.667rem rgba(0,200,255,.3); }
+    .apt-btn.active { border-color:#00c8ff; color:#00c8ff; background:rgba(0,200,255,.08); box-shadow:0 0 1rem rgba(0,200,255,.4); }
 
     #apt-tooltip {
       display: none;
@@ -156,73 +161,71 @@
       border: 1px solid rgba(0,200,255,0.5);
       color: #00c8ff;
       font-family: 'Courier New', monospace;
-      font-size: 10px;
-      letter-spacing: 1px;
-      padding: 4px 8px;
+      font-size: 0.833rem;
+      letter-spacing: 0.083rem;
+      padding: 0.333rem 0.667rem;
       pointer-events: none;
       white-space: nowrap;
       z-index: 999;
       line-height: 1.6;
     }
 
-    #range-buttons { display: flex; gap: 8px; }
+    #range-buttons { display: flex; gap: 0.667rem; }
 
     .range-btn {
       background: transparent;
       border: 1px solid rgba(0,255,65,0.4);
       color: rgba(0,255,65,0.6);
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      letter-spacing: 2px;
-      padding: 4px 12px;
+      font-size: 0.917rem;
+      letter-spacing: 0.167rem;
+      padding: 0.333rem 1rem;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .range-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 8px rgba(0,255,65,.3); }
-    .range-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 12px rgba(0,255,65,.4); }
+    .range-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 0.667rem rgba(0,255,65,.3); }
+    .range-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 1rem rgba(0,255,65,.4); }
 
     .lbl-btn {
       background: transparent;
       border: 1px solid rgba(0,255,65,0.4);
       color: rgba(0,255,65,0.6);
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      letter-spacing: 2px;
-      padding: 4px 12px;
+      font-size: 0.917rem;
+      letter-spacing: 0.167rem;
+      padding: 0.333rem 1rem;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .lbl-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 8px rgba(0,255,65,.3); }
-    .lbl-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 12px rgba(0,255,65,.4); }
+    .lbl-btn:hover  { border-color:#00ff41; color:#00ff41; box-shadow:0 0 0.667rem rgba(0,255,65,.3); }
+    .lbl-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 1rem rgba(0,255,65,.4); }
 
-    #footer { display:flex; gap:24px; font-size:10px; letter-spacing:2px; opacity:.8; }
+    #footer { display:flex; gap:2rem; font-size:0.833rem; letter-spacing:0.167rem; opacity:.8; }
 
     #file-warning {
       display: none;
       background: rgba(255,200,0,0.08);
       border: 1px solid rgba(255,200,0,0.4);
       color: #ffcc00;
-      font-size: 10px;
-      letter-spacing: 1px;
-      padding: 6px 12px;
+      font-size: 0.833rem;
+      letter-spacing: 0.083rem;
+      padding: 0.5rem 1rem;
       text-align: center;
       line-height: 1.7;
     }
 
     /* ── Info panel ── */
     #info-panel {
-      width: 480px;
       border: 1px solid rgba(0,255,65,0.25);
       display: flex;
       flex-direction: column;
-      margin-top: 36px;
-      max-height: 94vh;
+      min-height: 0;
     }
 
     #info-title {
-      font-size: 11px;
-      letter-spacing: 3px;
-      padding: 8px 12px;
+      font-size: 0.917rem;
+      letter-spacing: 0.25rem;
+      padding: 0.667rem 1rem;
       border-bottom: 1px solid rgba(0,255,65,0.25);
       background: rgba(0,255,65,0.05);
       flex-shrink: 0;
@@ -235,15 +238,15 @@
       gap: 0 1px;
       overflow-y: auto;
       flex: 1;
-      font-size: 11px;
+      font-size: 0.917rem;
       scrollbar-width: thin;
       scrollbar-color: rgba(0,255,65,0.3) transparent;
     }
-    #info-body::-webkit-scrollbar { width: 4px; }
+    #info-body::-webkit-scrollbar { width: 0.333rem; }
     #info-body::-webkit-scrollbar-thumb { background: rgba(0,255,65,0.3); }
 
     .info-col {
-      padding: 10px 12px;
+      padding: 0.833rem 1rem;
       min-width: 0;
     }
 
@@ -253,20 +256,20 @@
 
     .info-col-full {
       grid-column: 1 / -1;
-      padding: 10px 12px;
+      padding: 0.833rem 1rem;
     }
 
-    .empty { opacity:.3; letter-spacing:1px; line-height:2.2; margin-top:20px; font-size:10px; text-align:center; }
+    .empty { opacity:.3; letter-spacing:0.083rem; line-height:2.2; margin-top:1.667rem; font-size:0.833rem; text-align:center; }
 
-    .info-section { margin-bottom: 14px; }
+    .info-section { margin-bottom: 1.167rem; }
 
     .info-section-label {
-      font-size: 9px;
-      letter-spacing: 3px;
+      font-size: 0.75rem;
+      letter-spacing: 0.25rem;
       opacity: .4;
       border-bottom: 1px solid rgba(0,255,65,0.15);
-      padding-bottom: 3px;
-      margin-bottom: 6px;
+      padding-bottom: 0.25rem;
+      margin-bottom: 0.5rem;
       text-transform: uppercase;
     }
 
@@ -274,28 +277,28 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      padding: 2px 0;
-      gap: 8px;
+      padding: 0.167rem 0;
+      gap: 0.667rem;
     }
 
-    .info-key  { font-size:9px; letter-spacing:1px; opacity:.45; white-space:nowrap; flex-shrink:0; }
-    .info-val  { font-size:11px; text-align:right; word-break:break-word; }
+    .info-key  { font-size:0.75rem; letter-spacing:0.083rem; opacity:.45; white-space:nowrap; flex-shrink:0; }
+    .info-val  { font-size:0.917rem; text-align:right; word-break:break-word; }
 
-    .val-big   { color:#fff; font-size:14px; letter-spacing:1px; }
+    .val-big   { color:#fff; font-size:1.167rem; letter-spacing:0.083rem; }
     .val-dim   { opacity:.55; }
 
     @keyframes valFlash {
-      0%   { color:#fff; text-shadow: 0 0 8px #00ff41; }
+      0%   { color:#fff; text-shadow: 0 0 0.667rem #00ff41; }
       100% { color:inherit; text-shadow:none; }
     }
     .val-flash { animation: valFlash 0.9s ease-out; }
 
     #live-bar {
-      font-size: 9px;
-      letter-spacing: 2px;
+      font-size: 0.75rem;
+      letter-spacing: 0.167rem;
       opacity: 0.4;
-      padding-bottom: 8px;
-      margin-bottom: 4px;
+      padding-bottom: 0.667rem;
+      margin-bottom: 0.333rem;
       border-bottom: 1px solid rgba(0,255,65,0.1);
     }
     .val-climb   { color:#00ff41; }
@@ -303,16 +306,16 @@
     .val-warn    { color:#ffdd00; }
     .val-loading { opacity:.4; font-style:italic; }
 
-    .airport-prefix { font-size:9px; letter-spacing:2px; opacity:.45; margin-top:6px; margin-bottom:2px; }
+    .airport-prefix { font-size:0.75rem; letter-spacing:0.167rem; opacity:.45; margin-top:0.5rem; margin-bottom:0.167rem; }
     .airport-block {
-      margin: 0 0 4px 0;
-      padding: 5px 7px;
+      margin: 0 0 0.333rem 0;
+      padding: 0.417rem 0.583rem;
       border: 1px solid rgba(0,255,65,0.15);
       background: rgba(0,255,65,0.03);
       border-radius: 1px;
     }
-    .airport-code { font-size:13px; letter-spacing:2px; }
-    .airport-name { font-size:9px; opacity:.55; margin-top:2px; line-height:1.4; }
+    .airport-code { font-size:1.083rem; letter-spacing:0.167rem; }
+    .airport-name { font-size:0.75rem; opacity:.55; margin-top:0.167rem; line-height:1.4; }
 
     .blink { animation: blink 1s step-end infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
@@ -392,9 +395,38 @@ const SWEEP_SPEED = (2 * Math.PI) / 8;
 const GREEN       = '#00ff41';
 const FETCH_EVERY = 10000;
 
-const SIZE = Math.min(window.innerWidth * 0.55, window.innerHeight * 0.80, 510);
-canvas.width = canvas.height = SIZE;
-const cx = SIZE / 2, cy = SIZE / 2, R = SIZE / 2 - 22;
+// Geometry in CSS pixels; recomputed by resizeCanvas(). The backing store is
+// CSS size × devicePixelRatio so the radar stays crisp on HiDPI / 4K screens.
+let SIZE = 0, cx = 0, cy = 0, R = 0;
+let K   = 1; // scale factor: R relative to the original 233px design radius
+let dpr = 1;
+
+const px   = n => n * K;         // design px → CSS px (lines, fonts, blips)
+const blur = n => n * K * dpr;   // shadowBlur ignores the transform, so scale to device px
+const font = n => `${px(n).toFixed(1)}px Courier New`;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return;
+  dpr  = window.devicePixelRatio || 1;
+  SIZE = Math.min(rect.width, rect.height);
+  canvas.width  = Math.round(rect.width  * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = SIZE / 2; cy = SIZE / 2;
+  R  = SIZE * 0.457;             // leaves a margin for the N/S/E/W letters
+  K  = R / 233;
+  for (const b of blips.values()) { b.x = null; b.trail = []; } // positions were in old scale
+  if (leafletMap) { leafletMap.invalidateSize(false); leafletMap.setView([center.lat, center.lon], mapZoom()); }
+}
+
+new ResizeObserver(resizeCanvas).observe(canvas);
+(function watchDpr() {
+  // Fires when the window moves to a screen with a different pixel ratio (or zoom changes)
+  matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+    .addEventListener('change', () => { resizeCanvas(); watchDpr(); }, { once: true });
+})();
+window.addEventListener('resize', resizeCanvas);
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let sweepAngle     = Math.PI * 3 / 2;
@@ -556,7 +588,6 @@ async function initMap() {
   if (leafletMap) return;
   await loadLeaflet();
   const el = document.getElementById('map-bg');
-  el.style.width = el.style.height = SIZE + 'px';
   leafletMap = L.map('map-bg', {
     center: [center.lat, center.lon], zoom: mapZoom(),
     zoomControl: false, attributionControl: false,
@@ -572,8 +603,7 @@ async function toggleMap() {
   if (!mapMode) {
     btn.textContent = 'LOADING…';
     btn.classList.add('active');
-    el.style.width = el.style.height = SIZE + 'px';
-    el.style.display = 'block';
+      el.style.display = 'block';
     try {
       await initMap();
       leafletMap.invalidateSize(false); // measure real dimensions before tiles load
@@ -756,22 +786,20 @@ function drawAirports() {
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
   ctx.strokeStyle = 'rgba(0,200,255,0.55)';
   ctx.fillStyle   = 'rgba(0,200,255,0.55)';
-  ctx.lineWidth   = 1;
+  ctx.lineWidth   = px(1);
+  ctx.font        = font(9);
   for (const ap of airports) {
     const pos = latLonToXY(ap.lat, ap.lon);
     if (!isFinite(pos.x) || !isFinite(pos.y)) continue;
     if (Math.hypot(pos.x - cx, pos.y - cy) > R - 2) continue;
-    const { x, y } = pos, r = 6;
+    const { x, y } = pos, r = px(6), t = px(3);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(x - r - 3, y); ctx.lineTo(x + r + 3, y);
-    ctx.moveTo(x, y - r - 3); ctx.lineTo(x, y + r + 3);
+    ctx.moveTo(x - r - t, y); ctx.lineTo(x + r + t, y);
+    ctx.moveTo(x, y - r - t); ctx.lineTo(x, y + r + t);
     ctx.stroke();
     const label = ap.iata || ap.icao;
-    if (label) {
-      ctx.font = '9px Courier New';
-      ctx.fillText(label, x + r + 5, y + 3);
-    }
+    if (label) ctx.fillText(label, x + r + px(5), y + px(3));
   }
   ctx.restore();
 }
@@ -1079,6 +1107,9 @@ async function selectAircraft(icao) {
 
 // ─── Drawing ─────────────────────────────────────────────────────────────────
 function drawBase() {
+  // Clear the whole canvas, including outside the circle — otherwise the rim
+  // glow and compass letters accumulate frame after frame into a thick band.
+  ctx.clearRect(0, 0, SIZE, SIZE);
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();
 
@@ -1094,11 +1125,11 @@ function drawBase() {
   const ringAlpha = mapMode ? '.35' : '.18';
   for (let i = 1; i <= 4; i++) {
     ctx.beginPath(); ctx.arc(cx, cy, R*i/4, 0, Math.PI*2);
-    ctx.strokeStyle = `rgba(0,255,65,${ringAlpha})`; ctx.lineWidth = 1;
-    ctx.setLineDash([4,6]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = `rgba(0,255,65,${ringAlpha})`; ctx.lineWidth = px(1);
+    ctx.setLineDash([px(4),px(6)]); ctx.stroke(); ctx.setLineDash([]);
   }
 
-  ctx.strokeStyle = `rgba(0,255,65,${ringAlpha})`; ctx.lineWidth = 1;
+  ctx.strokeStyle = `rgba(0,255,65,${ringAlpha})`; ctx.lineWidth = px(1);
   ctx.beginPath();
   ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy);
   ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R);
@@ -1127,7 +1158,7 @@ function drawSweep() {
 
   ctx.beginPath(); ctx.moveTo(cx,cy);
   ctx.lineTo(cx+Math.cos(sweepAngle)*R, cy+Math.sin(sweepAngle)*R);
-  ctx.strokeStyle=GREEN; ctx.lineWidth=2; ctx.shadowColor=GREEN; ctx.shadowBlur=10;
+  ctx.strokeStyle=GREEN; ctx.lineWidth=px(2); ctx.shadowColor=GREEN; ctx.shadowBlur=blur(10);
   ctx.stroke(); ctx.shadowBlur=0;
   ctx.restore();
 }
@@ -1138,6 +1169,7 @@ function drawBlips(ts) {
   ctx.save();
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();
 
+  const labels = [];
   for (const ac of aircraft) {
     // Skip aircraft not heard recently (adsb.lol source only — OpenSky seen can be unreliable)
     if (ac.source === 'adsb.lol' && ac.seen != null && ac.seen > STALE_HIDE) continue;
@@ -1151,7 +1183,7 @@ function drawBlips(ts) {
 
     if (sweepPassedOver(prevSweepAngle, sweepAngle, normalizeAngle(Math.atan2(pos.y-cy, pos.x-cx)))) {
       // Record previous position as trail before updating
-      if (blip.x != null && (Math.abs(pos.x - blip.x) > 0.5 || Math.abs(pos.y - blip.y) > 0.5)) {
+      if (blip.x != null && (Math.abs(pos.x - blip.x) > px(0.5) || Math.abs(pos.y - blip.y) > px(0.5))) {
         blip.trail = [{ x: blip.x, y: blip.y }, ...blip.trail].slice(0, 4);
       }
       blip.lastSweptTime = ts;
@@ -1167,19 +1199,19 @@ function drawBlips(ts) {
 
     if (isSel) {
       // Dashed selection ring
-      ctx.beginPath(); ctx.arc(pos.x, pos.y, 13, 0, Math.PI*2);
-      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.5;
-      ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, px(13), 0, Math.PI*2);
+      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=px(1.5);
+      ctx.setLineDash([px(3),px(3)]); ctx.stroke(); ctx.setLineDash([]);
 
       // Heading arrow
       if (ac.heading != null) {
         const hr  = (ac.heading - 90) * Math.PI/180;
-        const len = 24;
+        const len = px(24);
         const tx  = pos.x + Math.cos(hr)*len, ty = pos.y + Math.sin(hr)*len;
         ctx.beginPath(); ctx.moveTo(pos.x, pos.y); ctx.lineTo(tx, ty);
-        ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=1.5;
-        ctx.shadowColor='#fff'; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
-        const aw = Math.PI*.4, al = 5;
+        ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=px(1.5);
+        ctx.shadowColor='#fff'; ctx.shadowBlur=blur(4); ctx.stroke(); ctx.shadowBlur=0;
+        const aw = Math.PI*.4, al = px(5);
         ctx.beginPath();
         ctx.moveTo(tx, ty);
         ctx.lineTo(tx+Math.cos(hr+Math.PI-aw)*al, ty+Math.sin(hr+Math.PI-aw)*al);
@@ -1198,21 +1230,21 @@ function drawBlips(ts) {
     for (let i = 0; i < blip.trail.length; i++) {
       const tp = blip.trail[i];
       const a  = (1 - (i+1)/blip.trail.length) * fade * 0.45;
-      ctx.beginPath(); ctx.arc(tp.x, tp.y, 2, 0, Math.PI*2);
+      ctx.beginPath(); ctx.arc(tp.x, tp.y, px(2), 0, Math.PI*2);
       ctx.fillStyle = `rgba(${col},${a})`; ctx.fill();
     }
 
     // Heading vector — short line showing direction of travel for all aircraft
     if (!isSel && ac.heading != null && fade > 0.15) {
       const hr  = (ac.heading - 90) * Math.PI / 180;
-      const len = 14 * Math.min(fade, 0.9);
+      const len = px(14) * Math.min(fade, 0.9);
       ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
       ctx.lineTo(pos.x + Math.cos(hr)*len, pos.y + Math.sin(hr)*len);
-      ctx.strokeStyle = `rgba(${col},${fade * 0.55})`; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = `rgba(${col},${fade * 0.55})`; ctx.lineWidth = px(1); ctx.stroke();
     }
 
     // Glow — color shifts green→orange based on how stale the position is
-    const gR   = (isSel ? 16 : 14) * pulse;
+    const gR   = px(isSel ? 16 : 14) * pulse;
     const grad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, gR);
     grad.addColorStop(0,   `rgba(${col},${fade*(isSel?.9:.7)})`);
     grad.addColorStop(0.4, `rgba(${col},${fade*.25})`);
@@ -1221,20 +1253,22 @@ function drawBlips(ts) {
     ctx.fillStyle=grad; ctx.fill();
 
     // Dot
-    ctx.beginPath(); ctx.arc(pos.x, pos.y, isSel?3.5:2.5, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, px(isSel?3.5:2.5), 0, Math.PI*2);
     ctx.fillStyle   = isSel ? `rgba(255,255,255,${.6+fade*.4})` : `rgba(${col},${.5+fade*.5})`;
-    ctx.shadowColor = isSel ? '#fff' : `rgb(${col})`; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+    ctx.shadowColor = isSel ? '#fff' : `rgb(${col})`; ctx.shadowBlur=blur(8); ctx.fill(); ctx.shadowBlur=0;
 
-    // Label
     if (showLabels && fade > 0.1) {
-      ctx.font      = '9px Courier New';
-      ctx.fillStyle = isSel ? `rgba(255,255,255,${fade*.9})` : `rgba(${col},${fade*.85})`;
-      const lbl = ac.altBaro != null
-        ? `${ac.callsign||ac.icao24} ${ac.altBaro}m`
-        : (ac.callsign || ac.icao24);
-      ctx.fillText(lbl, pos.x+7, pos.y-6);
+      labels.push({
+        x: pos.x, y: pos.y, isSel, fade,
+        color: isSel ? `rgba(255,255,255,${fade*.9})` : `rgba(${col},${fade*.85})`,
+        text: ac.altBaro != null
+          ? `${ac.callsign||ac.icao24} ${ac.altBaro}m`
+          : (ac.callsign || ac.icao24),
+      });
     }
   }
+
+  drawLabels(labels);
 
   for (const [id, b] of blips)
     if (ts - b.lastSweptTime > period*2.5) blips.delete(id);
@@ -1242,26 +1276,61 @@ function drawBlips(ts) {
   ctx.restore();
 }
 
+// Greedy label placement: selected label first, then freshest blips. Each label
+// tries four spots around its blip and is dropped if all of them collide with an
+// already placed label or another blip's dot — so crowded clusters stay readable.
+function drawLabels(labels) {
+  if (!labels.length) return;
+  ctx.font = font(9);
+  const h = px(9), gap = px(7), dotR = px(4);
+  const placed = [];
+  const hits = (r, list) => list.some(o =>
+    r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y);
+  const dots = labels.map(l => ({ x: l.x - dotR, y: l.y - dotR, w: dotR*2, h: dotR*2, src: l }));
+
+  labels.sort((a, b) => (b.isSel - a.isSel) || (b.fade - a.fade));
+  for (const l of labels) {
+    const w = ctx.measureText(l.text).width;
+    const spots = [
+      { x: l.x + gap,     y: l.y - gap - h },  // upper right (default)
+      { x: l.x + gap,     y: l.y + gap },      // lower right
+      { x: l.x - gap - w, y: l.y - gap - h },  // upper left
+      { x: l.x - gap - w, y: l.y + gap },      // lower left
+    ];
+    const otherDots = dots.filter(d => d.src !== l);
+    const rects = spots.map(s => ({ ...s, w, h }));
+    // Prefer a spot clear of labels and dots; in a tight cluster settle for one
+    // clear of other labels so at least the freshest blip stays labelled.
+    const spot = rects.find(r => !hits(r, placed) && !hits(r, otherDots))
+              || rects.find(r => !hits(r, placed));
+    if (!spot && !l.isSel) continue;
+    const r = spot || { ...spots[0], w, h };
+    placed.push(r);
+    ctx.fillStyle = l.color;
+    ctx.fillText(l.text, r.x, r.y + h * 0.85);
+  }
+}
+
 function drawOverlay() {
   ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
-  ctx.strokeStyle=GREEN; ctx.lineWidth=1; ctx.shadowColor=GREEN; ctx.shadowBlur=8;
+  ctx.strokeStyle=GREEN; ctx.lineWidth=px(1); ctx.shadowColor=GREEN; ctx.shadowBlur=blur(8);
   ctx.stroke(); ctx.shadowBlur=0;
 
-  ctx.font='9px Courier New'; ctx.fillStyle='rgba(0,255,65,.4)';
+  ctx.font=font(9); ctx.fillStyle='rgba(0,255,65,.4)';
   for (let i=1; i<=4; i++)
-    ctx.fillText(`${RADIUS_KM*i/4}km`, cx+4, cy-R*i/4-3);
+    ctx.fillText(`${RADIUS_KM*i/4}km`, cx+px(8), cy-R*i/4-px(3));
 
-  ctx.font='11px Courier New'; ctx.textAlign='center';
-  ctx.strokeStyle='rgba(0,0,0,.8)'; ctx.lineWidth=2.5;
-  ctx.strokeText('N',cx,cy-R-14); ctx.strokeText('S',cx,cy+R+22);
-  ctx.strokeText('E',cx+R+16,cy+4); ctx.strokeText('W',cx-R-16,cy+4);
+  ctx.font=font(11); ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.strokeStyle='rgba(0,0,0,.8)'; ctx.lineWidth=px(2.5);
+  const d = R + px(11);
+  const compass = [['N',cx,cy-d], ['S',cx,cy+d], ['E',cx+d,cy], ['W',cx-d,cy]];
+  for (const [t,x,y] of compass) ctx.strokeText(t,x,y);
   ctx.fillStyle='rgba(0,255,65,.6)';
-  ctx.fillText('N',cx,cy-R-14); ctx.fillText('S',cx,cy+R+22);
-  ctx.fillText('E',cx+R+16,cy+4); ctx.fillText('W',cx-R-16,cy+4);
-  ctx.textAlign='left';
+  for (const [t,x,y] of compass) ctx.fillText(t,x,y);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
 
-  ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2);
-  ctx.fillStyle=GREEN; ctx.shadowColor=GREEN; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+  ctx.beginPath(); ctx.arc(cx,cy,px(3),0,Math.PI*2);
+  ctx.fillStyle=GREEN; ctx.shadowColor=GREEN; ctx.shadowBlur=blur(8); ctx.fill(); ctx.shadowBlur=0;
 }
 
 // ─── Animation loop ───────────────────────────────────────────────────────────
@@ -1285,7 +1354,7 @@ canvas.addEventListener('click', e => {
     selectedIcao = null; renderPanel(null, null, false); return;
   }
 
-  let nearest = null, nearestD = 22;
+  let nearest = null, nearestD = px(22);
   for (const [icao, b] of blips) {
     if (b.x == null) continue;
     const d = Math.hypot(mx-b.x, my-b.y);
@@ -1305,7 +1374,7 @@ canvas.addEventListener('mousemove', e => {
   let hit = null;
   for (const ap of airports) {
     const pos = latLonToXY(ap.lat, ap.lon);
-    if (isFinite(pos.x) && Math.hypot(mx - pos.x, my - pos.y) < 12) { hit = ap; break; }
+    if (isFinite(pos.x) && Math.hypot(mx - pos.x, my - pos.y) < px(12)) { hit = ap; break; }
   }
   if (hit) {
     const code = [hit.iata, hit.icao].filter(Boolean).join(' / ');
@@ -1433,6 +1502,7 @@ document.getElementById('location-modal').addEventListener('click', e => {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
+  resizeCanvas();
   document.getElementById('location-display').textContent = 'ACQUIRING LOCATION…';
 
   // Priority: ?lat=&lon= URL override > saved custom location > browser geolocation > IP geolocation > default
