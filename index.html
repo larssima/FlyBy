@@ -35,9 +35,9 @@
       justify-content: center;
       gap: 1vh;
       min-height: 0;
-      /* Fixed to the radar's width so changing status text (e.g. a failed fetch)
-         can't resize the column and shove the radar sideways. */
-      width: var(--radar-size);
+      /* Fixed width (radar + margin for the footer text) so changing status text
+         (e.g. a failed fetch) can't resize the column and shove the radar sideways. */
+      width: calc(var(--radar-size) + 6rem);
     }
     #radar-col > * { max-width: 100%; }
 
@@ -205,7 +205,7 @@
     .lbl-btn.active { border-color:#00ff41; color:#00ff41; background:rgba(0,255,65,.08); box-shadow:0 0 1rem rgba(0,255,65,.4); }
 
     #footer {
-      display:flex; justify-content:center; gap:2rem; font-size:0.833rem; letter-spacing:0.167rem; opacity:.8;
+      display:flex; justify-content:center; gap:1.5rem; font-size:0.833rem; letter-spacing:0.1rem; opacity:.8;
       height:1.5em; line-height:1.5em; white-space:nowrap; overflow:hidden;
     }
     #footer > span { overflow:hidden; text-overflow:ellipsis; }
@@ -334,7 +334,7 @@
 
   <div id="radar-col">
     <div id="header">
-      <h1>FlyBy <sup style="font-size:0.45em;opacity:0.55;font-weight:400;letter-spacing:0">v1.6</sup></h1>
+      <h1>FlyBy <sup style="font-size:0.45em;opacity:0.55;font-weight:400;letter-spacing:0">v1.7</sup></h1>
       <div id="location-row">
         <span id="location-display">INITIALIZING…</span>
         <span id="set-location" title="Set custom location">SET</span>
