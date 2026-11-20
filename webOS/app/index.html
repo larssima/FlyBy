@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FlyBy Radar</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    #radar { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+    #msg {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      font: 28px 'Courier New', monospace; letter-spacing: 4px; color: #00ff41;
+    }
+    #keepawake { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="msg">FLYBY · CONNECTING…</div>
+  <iframe id="radar" allow="geolocation" hidden></iframe>
+  <!-- Blank 1-second clip from NoSleep.js (MIT). Looping media playback keeps
+       most TVs from starting the screensaver. -->
+  <video id="keepawake" src="keepawake.mp4" muted loop autoplay playsinline></video>
+<script>
+// Hosted app: the radar itself lives on Netlify, so every push to master
+// reaches the TV without reinstalling, and the /proxy/* data routes keep working.
+// It runs in a frame rather than replacing this page so this local app page stays
+// loaded and can talk to the TV's system services (screensaver, below).
+// Add ?lat=..&lon=.. to RADAR_URL to pin the radar to a fixed location.
+var RADAR_URL = 'https://flyby-radar.netlify.app/';
+
+var frame = document.getElementById('radar');
+var msg   = document.getElementById('msg');
+
+function launch() {
+  if (navigator.onLine === false) {
+    msg.textContent = 'FLYBY · NO NETWORK · RETRYING…';
+    setTimeout(launch, 5000);
+    return;
+  }
+  frame.onload = function () { msg.hidden = true; frame.hidden = false; frame.focus(); };
+  frame.src = RADAR_URL;
+}
+launch();
+
+// Remote keys go to whichever document has focus; keep it on the radar.
+window.addEventListener('focus', function () { frame.focus(); });
+document.addEventListener('click', function () { frame.focus(); });
+
+// ─── Keep the screen awake ───────────────────────────────────────────────────
+// 1) Looping hidden video (see <video> above). Restart it if the TV paused it.
+var video = document.getElementById('keepawake');
+setInterval(function () { if (video.paused) video.play().catch(function () {}); }, 60 * 1000);
+
+// 2) webOS asks running apps before it starts the screensaver; answer "no".
+//    Best effort: not every TV model / firmware lets side-loaded apps do this.
+var screensaverSub = null; // keep a reference, or the subscription is dropped
+function luna(uri, params, onReply) {
+  var bridge = new PalmServiceBridge();
+  bridge.onservicecallback = function (raw) {
+    try { onReply && onReply(JSON.parse(raw)); } catch (e) { console.warn('[FlyBy] luna reply', e); }
+  };
+  bridge.call(uri, JSON.stringify(params));
+  return bridge;
+}
+if (typeof PalmServiceBridge !== 'undefined') {
+  screensaverSub = luna('luna://com.webos.service.tvpower/power/registerScreenSaverRequest',
+    { subscribe: true, clientName: 'flyby' },
+    function (res) {
+      if (!res.returnValue && res.errorText) { console.warn('[FlyBy] screensaver hook:', res.errorText); return; }
+      if (res.timestamp == null) return; // initial subscription ack
+      luna('luna://com.webos.service.tvpower/power/responseScreenSaverRequest',
+        { clientName: 'flyby', ack: false, timestamp: res.timestamp });
+    });
+}
+</script>
+</body>
+</html>
