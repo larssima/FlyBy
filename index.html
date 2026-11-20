@@ -334,7 +334,7 @@
 
   <div id="radar-col">
     <div id="header">
-      <h1>FlyBy <sup style="font-size:0.45em;opacity:0.55;font-weight:400;letter-spacing:0">v1.8</sup></h1>
+      <h1>FlyBy <sup style="font-size:0.45em;opacity:0.55;font-weight:400;letter-spacing:0">v1.9</sup></h1>
       <div id="location-row">
         <span id="location-display">INITIALIZING…</span>
         <span id="set-location" title="Set custom location">SET</span>
@@ -1407,6 +1407,31 @@ document.getElementById('apt-toggle').addEventListener('click', toggleAirports);
 document.getElementById('label-toggle').addEventListener('click', () => {
   showLabels = !showLabels;
   document.getElementById('label-toggle').classList.toggle('active', showLabels);
+});
+
+// ─── TV remote (LG webOS Magic Remote) ───────────────────────────────────────
+// Colour buttons mirror the toolbar; ◀ ▶ step through aircraft nearest-first.
+// Key codes are webOS's; on a computer keyboard only the arrows apply.
+const REMOTE_KEYS = {
+  403: 'range-cycle',   // red
+  404: 'auto-toggle',   // green
+  405: 'apt-toggle',    // yellow
+  406: 'label-toggle',  // blue
+};
+function stepAircraft(dir) {
+  const visible = aircraft
+    .filter(ac => { const p = latLonToXY(ac.lat, ac.lon); return Math.hypot(p.x - cx, p.y - cy) <= R - 2; })
+    .sort((a, b) => distKm(center.lat, center.lon, a.lat, a.lon) - distKm(center.lat, center.lon, b.lat, b.lon));
+  if (visible.length === 0) return;
+  const i = visible.findIndex(ac => ac.icao24 === selectedIcao);
+  const next = i < 0 ? (dir > 0 ? 0 : visible.length - 1) : (i + dir + visible.length) % visible.length;
+  selectAircraft(visible[next].icao24);
+}
+document.addEventListener('keydown', e => {
+  if (document.getElementById('location-modal').classList.contains('show')) return;
+  if (REMOTE_KEYS[e.keyCode]) { document.getElementById(REMOTE_KEYS[e.keyCode]).click(); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { stepAircraft(1);  e.preventDefault(); }
+  else if (e.key === 'ArrowLeft')  { stepAircraft(-1); e.preventDefault(); }
 });
 
 // ─── Center → Google Maps ────────────────────────────────────────────────────
