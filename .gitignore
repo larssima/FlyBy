@@ -12,3 +12,6 @@ desktop.ini
 # Local dev server artifacts
 node_modules/
 .cache/
+
+# Build output
+webOS/dist/
